@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ListReposController } from '@/infra/http/controllers/repos/list-repos.controller'
+import { makeRepository } from 'test/factories/make-repository'
 
 describe('ListReposController', () => {
 	let listRepos: { execute: ReturnType<typeof vi.fn> }
@@ -9,14 +10,11 @@ describe('ListReposController', () => {
 		listRepos = {
 			execute: vi.fn().mockResolvedValue({
 				items: [
-					{
-						id: 'repo-1',
+					makeRepository({
+						fullName: 'acme/flowtrack',
 						name: 'flowtrack',
-						full_name: 'acme/flowtrack',
-						is_private: false,
-						owner_login: 'acme',
-						default_branch: 'main',
-					},
+						ownerLogin: 'acme',
+					}),
 				],
 			}),
 		}
@@ -32,5 +30,6 @@ describe('ListReposController', () => {
 			query: undefined,
 		})
 		expect(response.items).toHaveLength(1)
+		expect(response.items[0].full_name).toBe('acme/flowtrack')
 	})
 })

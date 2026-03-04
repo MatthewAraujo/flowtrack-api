@@ -6,6 +6,7 @@ import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
 import { NotFoundError } from '../errors/not-found-error'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
+import { RepoMetrics } from '@/domain/flowtrack/enterprise/entities/value-objects/repo-metrics'
 
 interface GetRepoMetricsUseCaseRequest {
 	userId: string
@@ -16,24 +17,7 @@ interface GetRepoMetricsUseCaseRequest {
 
 type GetRepoMetricsUseCaseResponse = Either<
 	NotAllowedError | NotFoundError,
-	{
-		repositoryId: string
-		window: '7d' | '30d' | '90d'
-		from: Date
-		to: Date
-		meanCommitsPerWeek: number
-		meanPrCycleTimeHours: number | null
-		prRejectionRate: number
-		linesAdded: number
-		linesDeleted: number
-		netLines: number
-		productivityScore: number
-		counts: {
-			commits: number
-			closedPrs: number
-			reviews: number
-		}
-	}
+	RepoMetrics
 >
 
 @Injectable()
@@ -94,19 +78,11 @@ export class GetRepoMetricsUseCase {
 
 		const metrics = await this.metrics.execute([repository.id], window, { refresh })
 
-		return right({
-			repositoryId: repository.id,
-			window: metrics.window,
-			from: metrics.from,
-			to: metrics.to,
-			meanCommitsPerWeek: metrics.meanCommitsPerWeek,
-			meanPrCycleTimeHours: metrics.meanPrCycleTimeHours,
-			prRejectionRate: metrics.prRejectionRate,
-			linesAdded: metrics.linesAdded,
-			linesDeleted: metrics.linesDeleted,
-			netLines: metrics.netLines,
-			productivityScore: metrics.productivityScore,
-			counts: metrics.counts,
-		})
+		return right(
+			RepoMetrics.create({
+				repositoryId: repository.id,
+				metrics,
+			}),
+		)
 	}
 }

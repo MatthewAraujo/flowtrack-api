@@ -1,26 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { CacheRepository } from '@/infra/cache/cache-repository'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
 
 type Window = '7d' | '30d' | '90d'
 
-type MetricsResult = {
-	window: Window
-	from: Date
-	to: Date
-	meanCommitsPerWeek: number
-	meanPrCycleTimeHours: number | null
-	prRejectionRate: number
-	linesAdded: number
-	linesDeleted: number
-	netLines: number
-	productivityScore: number
-	counts: {
-		commits: number
-		closedPrs: number
-		reviews: number
-	}
-}
+type MetricsResult = MetricsAggregate
 
 @Injectable()
 export class GetMetricsForReposUseCase {
@@ -50,12 +35,29 @@ export class GetMetricsForReposUseCase {
 		if (!options?.refresh) {
 			const cached = await this.cacheRepository.get(cacheKey)
 			if (cached) {
-				const parsed = JSON.parse(cached) as MetricsResult
-				return {
+				const parsed = JSON.parse(cached) as {
+					window: Window
+					from: string
+					to: string
+					meanCommitsPerWeek: number
+					meanPrCycleTimeHours: number | null
+					prRejectionRate: number
+					linesAdded: number
+					linesDeleted: number
+					netLines: number
+					productivityScore: number
+					counts: {
+						commits: number
+						closedPrs: number
+						reviews: number
+					}
+				}
+
+				return MetricsAggregate.create({
 					...parsed,
 					from: new Date(parsed.from),
 					to: new Date(parsed.to),
-				}
+				})
 			}
 		}
 
@@ -102,7 +104,23 @@ export class GetMetricsForReposUseCase {
 			reviews: reviews.length,
 		})
 
-		await this.cacheRepository.set(cacheKey, JSON.stringify(metrics), 300)
+		await this.cacheRepository.set(
+			cacheKey,
+			JSON.stringify({
+				window: metrics.window,
+				from: metrics.from,
+				to: metrics.to,
+				meanCommitsPerWeek: metrics.meanCommitsPerWeek,
+				meanPrCycleTimeHours: metrics.meanPrCycleTimeHours,
+				prRejectionRate: metrics.prRejectionRate,
+				linesAdded: metrics.linesAdded,
+				linesDeleted: metrics.linesDeleted,
+				netLines: metrics.netLines,
+				productivityScore: metrics.productivityScore,
+				counts: metrics.counts,
+			}),
+			300,
+		)
 
 		return metrics
 	}
@@ -165,7 +183,7 @@ export class GetMetricsForReposUseCase {
 			meanPrCycleTimeHours,
 		})
 
-		return {
+		return MetricsAggregate.create({
 			window,
 			from,
 			to,
@@ -181,7 +199,7 @@ export class GetMetricsForReposUseCase {
 				closedPrs: closedPulls.length,
 				reviews,
 			},
-		}
+		})
 	}
 
 	private calculateProductivityScore(params: {

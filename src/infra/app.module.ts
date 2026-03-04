@@ -7,7 +7,6 @@ import { envSchema } from './env/env'
 import { EnvModule } from './env/env.module'
 import { GitHubModule } from './github/github.module'
 import { HttpModule } from './http/http.module'
-import { ReposModule } from './repos/repos.module'
 
 @Module({
 	imports: [
@@ -21,7 +20,6 @@ import { ReposModule } from './repos/repos.module'
 		HttpModule,
 		EnvModule,
 		GitHubModule,
-		ReposModule,
 	],
 })
 export class AppModule { }

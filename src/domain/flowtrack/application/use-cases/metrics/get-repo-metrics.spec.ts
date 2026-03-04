@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
+import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
 
 describe('GetRepoMetricsUseCase', () => {
 	let prisma: any
@@ -21,19 +22,19 @@ describe('GetRepoMetricsUseCase', () => {
 				from: new Date('2026-03-01T00:00:00.000Z'),
 				to: new Date('2026-03-08T00:00:00.000Z'),
 			}),
-			execute: vi.fn().mockResolvedValue({
-				window: '7d',
-				from: new Date('2026-03-01T00:00:00.000Z'),
-				to: new Date('2026-03-08T00:00:00.000Z'),
-				meanCommitsPerWeek: 10,
-				meanPrCycleTimeHours: 24,
-				prRejectionRate: 0.5,
-				linesAdded: 30,
-				linesDeleted: 5,
-				netLines: 25,
-				productivityScore: 42,
-				counts: { commits: 10, closedPrs: 2, reviews: 4 },
-			}),
+			execute: vi.fn().mockResolvedValue(
+				makeMetricsAggregate({
+					window: '7d',
+					meanCommitsPerWeek: 10,
+					meanPrCycleTimeHours: 24,
+					prRejectionRate: 0.5,
+					linesAdded: 30,
+					linesDeleted: 5,
+					netLines: 25,
+					productivityScore: 42,
+					counts: { commits: 10, closedPrs: 2, reviews: 4 },
+				}),
+			),
 		}
 
 		sut = new GetRepoMetricsUseCase(

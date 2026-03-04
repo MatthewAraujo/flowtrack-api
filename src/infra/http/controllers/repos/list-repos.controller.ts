@@ -1,6 +1,7 @@
 import { Controller, Get, Query } from '@nestjs/common'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
+import { ReposPresenter } from '@/infra/http/presenters/repos.presenter'
 
 @Controller('/repos')
 export class ListReposController {
@@ -11,9 +12,13 @@ export class ListReposController {
 		@CurrentUser() user: { sub: string },
 		@Query('q') query?: string,
 	) {
-		return this.listRepos.execute({
+		const result = await this.listRepos.execute({
 			userId: user.sub,
 			query,
 		})
+
+		return {
+			items: ReposPresenter.toHTTP(result.items),
+		}
 	}
 }

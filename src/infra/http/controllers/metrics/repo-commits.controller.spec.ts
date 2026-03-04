@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RepoCommitsController } from '@/infra/http/controllers/metrics/repo-commits.controller'
+import { makeCommitEvent } from 'test/factories/make-commit-event'
 
 describe('RepoCommitsController', () => {
 	let getRepoCommits: { execute: ReturnType<typeof vi.fn> }
@@ -11,14 +12,13 @@ describe('RepoCommitsController', () => {
 				isLeft: () => false,
 				value: {
 					items: [
-						{
-							id: 'commit-1',
+						makeCommitEvent({
 							sha: 'abc',
 							authorLogin: 'dev',
 							authorEmail: 'dev@example.com',
 							message: 'feat: add',
 							committedAt: new Date('2026-03-01T00:00:00.000Z'),
-						},
+						}),
 					],
 				},
 			}),

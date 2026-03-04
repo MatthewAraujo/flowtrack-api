@@ -3,6 +3,7 @@ import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
+import { DashboardSummary } from '@/domain/flowtrack/enterprise/entities/value-objects/dashboard-summary'
 
 interface GetDashboardSummaryUseCaseRequest {
 	userId: string
@@ -13,24 +14,7 @@ interface GetDashboardSummaryUseCaseRequest {
 
 type GetDashboardSummaryUseCaseResponse = Either<
 	NotAllowedError,
-	{
-		repositoryIds: string[]
-		window: '7d' | '30d' | '90d'
-		from: Date
-		to: Date
-		meanCommitsPerWeek: number
-		meanPrCycleTimeHours: number | null
-		prRejectionRate: number
-		linesAdded: number
-		linesDeleted: number
-		netLines: number
-		productivityScore: number
-		counts: {
-			commits: number
-			closedPrs: number
-			reviews: number
-		}
-	}
+	DashboardSummary
 >
 
 @Injectable()
@@ -63,19 +47,11 @@ export class GetDashboardSummaryUseCase {
 
 		const metrics = await this.metrics.execute(repositoryIds, window, { refresh })
 
-		return right({
-			repositoryIds,
-			window: metrics.window,
-			from: metrics.from,
-			to: metrics.to,
-			meanCommitsPerWeek: metrics.meanCommitsPerWeek,
-			meanPrCycleTimeHours: metrics.meanPrCycleTimeHours,
-			prRejectionRate: metrics.prRejectionRate,
-			linesAdded: metrics.linesAdded,
-			linesDeleted: metrics.linesDeleted,
-			netLines: metrics.netLines,
-			productivityScore: metrics.productivityScore,
-			counts: metrics.counts,
-		})
+		return right(
+			DashboardSummary.create({
+				repositoryIds,
+				metrics,
+			}),
+		)
 	}
 }

@@ -14,6 +14,7 @@ import { Roles } from '@/infra/authorization/roles'
 import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
 import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { RepoMetricsPresenter } from '@/infra/http/presenters/repo-metrics.presenter'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),
@@ -55,21 +56,6 @@ export class RepoMetricsController {
 			}
 		}
 
-		const metrics = result.value
-
-		return {
-			repository_id: metrics.repositoryId,
-			window: metrics.window,
-			from: metrics.from,
-			to: metrics.to,
-			mean_commits_per_week: metrics.meanCommitsPerWeek,
-			mean_pr_cycle_time_hours: metrics.meanPrCycleTimeHours,
-			pr_rejection_rate: metrics.prRejectionRate,
-			lines_added: metrics.linesAdded,
-			lines_deleted: metrics.linesDeleted,
-			net_lines: metrics.netLines,
-			productivity_score: metrics.productivityScore,
-			counts: metrics.counts,
-		}
+		return RepoMetricsPresenter.toHTTP(result.value)
 	}
 }

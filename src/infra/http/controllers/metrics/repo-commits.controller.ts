@@ -14,6 +14,7 @@ import { Roles } from '@/infra/authorization/roles'
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
 import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { RepoCommitsPresenter } from '@/infra/http/presenters/repo-commits.presenter'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),
@@ -62,14 +63,7 @@ export class RepoCommitsController {
 		}
 
 		return {
-			items: result.value.items.map((commit) => ({
-				id: commit.id,
-				sha: commit.sha,
-				author_login: commit.authorLogin,
-				author_email: commit.authorEmail,
-				message: commit.message,
-				committed_at: commit.committedAt,
-			})),
+			items: RepoCommitsPresenter.toHTTP(result.value.items),
 		}
 	}
 }

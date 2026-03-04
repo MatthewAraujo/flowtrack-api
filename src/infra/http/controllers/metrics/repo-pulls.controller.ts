@@ -14,6 +14,7 @@ import { Roles } from '@/infra/authorization/roles'
 import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
 import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { RepoPullsPresenter } from '@/infra/http/presenters/repo-pulls.presenter'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),
@@ -63,20 +64,7 @@ export class RepoPullsController {
 		}
 
 		return {
-			items: result.value.items.map((pull) => ({
-				id: pull.id,
-				number: pull.number,
-				title: pull.title,
-				state: pull.state,
-				is_merged: pull.isMerged,
-				author_login: pull.authorLogin,
-				created_at: pull.createdAt,
-				closed_at: pull.closedAt,
-				merged_at: pull.mergedAt,
-				additions: pull.additions,
-				deletions: pull.deletions,
-				changed_files: pull.changedFiles,
-			})),
+			items: RepoPullsPresenter.toHTTP(result.value.items),
 		}
 	}
 }

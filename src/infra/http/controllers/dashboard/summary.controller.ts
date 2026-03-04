@@ -11,6 +11,7 @@ import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { Roles } from '@/infra/authorization/roles'
 import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { DashboardSummaryPresenter } from '@/infra/http/presenters/dashboard-summary.presenter'
 
 const querySchema = z.object({
 	repoIds: z.string().min(1),
@@ -52,21 +53,6 @@ export class DashboardSummaryController {
 			}
 		}
 
-		const metrics = result.value
-
-		return {
-			repository_ids: metrics.repositoryIds,
-			window: metrics.window,
-			from: metrics.from,
-			to: metrics.to,
-			mean_commits_per_week: metrics.meanCommitsPerWeek,
-			mean_pr_cycle_time_hours: metrics.meanPrCycleTimeHours,
-			pr_rejection_rate: metrics.prRejectionRate,
-			lines_added: metrics.linesAdded,
-			lines_deleted: metrics.linesDeleted,
-			net_lines: metrics.netLines,
-			productivity_score: metrics.productivityScore,
-			counts: metrics.counts,
-		}
+		return DashboardSummaryPresenter.toHTTP(result.value)
 	}
 }

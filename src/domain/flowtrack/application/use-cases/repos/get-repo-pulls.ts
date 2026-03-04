@@ -5,6 +5,8 @@ import { TokenCipher } from '../../cryptography/token-cipher'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
 import { NotFoundError } from '../errors/not-found-error'
+import { PullRequestEvent } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
 interface GetRepoPullsUseCaseRequest {
 	userId: string
@@ -16,20 +18,7 @@ interface GetRepoPullsUseCaseRequest {
 type GetRepoPullsUseCaseResponse = Either<
 	NotAllowedError | NotFoundError,
 	{
-		items: Array<{
-			id: string
-			number: number
-			title: string
-			state: string
-			isMerged: boolean
-			authorLogin: string | null
-			createdAt: Date
-			closedAt: Date | null
-			mergedAt: Date | null
-			additions: number | null
-			deletions: number | null
-			changedFiles: number | null
-		}>
+		items: PullRequestEvent[]
 	}
 >
 
@@ -90,20 +79,24 @@ export class GetRepoPullsUseCase {
 		const pulls = await this.ingestion.listPullRequestEvents(repository.id, from, to)
 
 		return right({
-			items: pulls.map((pull) => ({
-				id: pull.id,
-				number: pull.number,
-				title: pull.title,
-				state: pull.state,
-				isMerged: pull.isMerged,
-				authorLogin: pull.authorLogin,
-				createdAt: pull.createdAt,
-				closedAt: pull.closedAt,
-				mergedAt: pull.mergedAt,
-				additions: pull.additions,
-				deletions: pull.deletions,
-				changedFiles: pull.changedFiles,
-			})),
+			items: pulls.map((pull) =>
+				PullRequestEvent.create(
+					{
+						number: pull.number,
+						title: pull.title,
+						state: pull.state,
+						isMerged: pull.isMerged,
+						authorLogin: pull.authorLogin,
+						createdAt: pull.createdAt,
+						closedAt: pull.closedAt,
+						mergedAt: pull.mergedAt,
+						additions: pull.additions,
+						deletions: pull.deletions,
+						changedFiles: pull.changedFiles,
+					},
+					new UniqueEntityID(pull.id),
+				),
+			),
 		})
 	}
 }

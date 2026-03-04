@@ -5,6 +5,8 @@ import { TokenCipher } from '../../cryptography/token-cipher'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
 import { NotFoundError } from '../errors/not-found-error'
+import { CommitEvent } from '@/domain/flowtrack/enterprise/entities/commit-event'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
 interface GetRepoCommitsUseCaseRequest {
 	userId: string
@@ -16,14 +18,7 @@ interface GetRepoCommitsUseCaseRequest {
 type GetRepoCommitsUseCaseResponse = Either<
 	NotAllowedError | NotFoundError,
 	{
-		items: Array<{
-			id: string
-			sha: string
-			authorLogin: string | null
-			authorEmail: string | null
-			message: string | null
-			committedAt: Date
-		}>
+		items: CommitEvent[]
 	}
 >
 
@@ -84,14 +79,18 @@ export class GetRepoCommitsUseCase {
 		const commits = await this.ingestion.listCommitEvents(repository.id, from, to)
 
 		return right({
-			items: commits.map((commit) => ({
-				id: commit.id,
-				sha: commit.sha,
-				authorLogin: commit.authorLogin,
-				authorEmail: commit.authorEmail,
-				message: commit.message,
-				committedAt: commit.committedAt,
-			})),
+			items: commits.map((commit) =>
+				CommitEvent.create(
+					{
+						sha: commit.sha,
+						authorLogin: commit.authorLogin,
+						authorEmail: commit.authorEmail,
+						message: commit.message,
+						committedAt: commit.committedAt,
+					},
+					new UniqueEntityID(commit.id),
+				),
+			),
 		})
 	}
 }

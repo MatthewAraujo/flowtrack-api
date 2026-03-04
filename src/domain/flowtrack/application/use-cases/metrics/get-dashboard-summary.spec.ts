@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
+import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
 
 describe('GetDashboardSummaryUseCase', () => {
 	let prisma: any
@@ -11,19 +12,19 @@ describe('GetDashboardSummaryUseCase', () => {
 			userRepositoryAccess: { findMany: vi.fn() },
 		}
 		metrics = {
-			execute: vi.fn().mockResolvedValue({
-				window: '30d',
-				from: new Date('2026-02-01T00:00:00.000Z'),
-				to: new Date('2026-03-02T00:00:00.000Z'),
-				meanCommitsPerWeek: 8,
-				meanPrCycleTimeHours: 20,
-				prRejectionRate: 0.2,
-				linesAdded: 100,
-				linesDeleted: 40,
-				netLines: 60,
-				productivityScore: 60,
-				counts: { commits: 32, closedPrs: 4, reviews: 12 },
-			}),
+			execute: vi.fn().mockResolvedValue(
+				makeMetricsAggregate({
+					window: '30d',
+					meanCommitsPerWeek: 8,
+					meanPrCycleTimeHours: 20,
+					prRejectionRate: 0.2,
+					linesAdded: 100,
+					linesDeleted: 40,
+					netLines: 60,
+					productivityScore: 60,
+					counts: { commits: 32, closedPrs: 4, reviews: 12 },
+				}),
+			),
 		}
 
 		sut = new GetDashboardSummaryUseCase(prisma, metrics as any)

@@ -78,14 +78,7 @@ export class ListReposUseCase {
 			: storedRepos
 
 		return {
-			items: filtered.map((repo) => ({
-				id: repo.id.toString(),
-				name: repo.name,
-				full_name: repo.fullName,
-				is_private: repo.isPrivate,
-				owner_login: repo.ownerLogin,
-				default_branch: repo.defaultBranch,
-			})),
+			items: filtered,
 		}
 	}
 

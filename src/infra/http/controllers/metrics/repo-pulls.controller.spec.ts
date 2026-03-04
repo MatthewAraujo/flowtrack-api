@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RepoPullsController } from '@/infra/http/controllers/metrics/repo-pulls.controller'
+import { makePullRequestEvent } from 'test/factories/make-pull-request-event'
 
 describe('RepoPullsController', () => {
 	let getRepoPulls: { execute: ReturnType<typeof vi.fn> }
@@ -11,8 +12,7 @@ describe('RepoPullsController', () => {
 				isLeft: () => false,
 				value: {
 					items: [
-						{
-							id: 'pull-1',
+						makePullRequestEvent({
 							number: 1,
 							title: 'Add feature',
 							state: 'closed',
@@ -24,7 +24,7 @@ describe('RepoPullsController', () => {
 							additions: 10,
 							deletions: 2,
 							changedFiles: 1,
-						},
+						}),
 					],
 				},
 			}),

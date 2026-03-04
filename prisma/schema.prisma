@@ -21,4 +21,33 @@ model User {
   password          String
   role              String
   githubAccessToken String?
+  repoAccess        UserRepositoryAccess[]
+}
+
+model Repository {
+  id             String  @id
+  provider       String
+  providerRepoId String
+  name           String
+  fullName       String
+  isPrivate      Boolean
+  ownerLogin     String
+  defaultBranch  String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  access         UserRepositoryAccess[]
+
+  @@unique([provider, providerRepoId])
+}
+
+model UserRepositoryAccess {
+  id           String   @id
+  userId       String
+  repositoryId String
+  grantedAt    DateTime @default(now())
+
+  user         User       @relation(fields: [userId], references: [id])
+  repository   Repository @relation(fields: [repositoryId], references: [id])
+
+  @@unique([userId, repositoryId])
 }

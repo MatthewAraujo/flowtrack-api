@@ -12,6 +12,7 @@ export const envSchema = z.object({
 	GITHUB_CLIENT_SECRET: z.string(),
 	GITHUB_OAUTH_CALLBACK_URL: z.string().url(),
 	GITHUB_OAUTH_UI_REDIRECT_URL: z.string().url(),
+	TOKEN_ENCRYPTION_KEY: z.string(),
 })
 
 export type Env = z.infer<typeof envSchema>

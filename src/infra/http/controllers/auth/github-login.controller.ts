@@ -16,7 +16,7 @@ export class GithubLoginController {
 		const params = new URLSearchParams({
 			client_id: clientId,
 			redirect_uri: redirectUri,
-			scope: 'repo read:org',
+			scope: 'repo read:org user:email',
 			allow_signup: 'true',
 		})
 

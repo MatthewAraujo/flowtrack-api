@@ -5,6 +5,8 @@ import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
 import { UsersRepository } from '@/domain/assistent/application/repositories/users-repository'
 import { User } from '@/domain/assistent/enterprise/entities/user'
 import { Encrypter } from '@/domain/assistent/application/cryptography/encrypter'
+import { HashGenerator } from '@/domain/assistent/application/cryptography/hash-generator'
+import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
 
 @Controller('/auth/github')
 @Public()
@@ -14,6 +16,8 @@ export class GithubCallbackController {
 		private githubOAuthService: GithubOAuthService,
 		private usersRepository: UsersRepository,
 		private encrypter: Encrypter,
+		private tokenCipher: TokenCipher,
+		private hashGenerator: HashGenerator,
 	) {}
 
 	@Get('/callback')
@@ -24,20 +28,22 @@ export class GithubCallbackController {
 		}
 
 		const token = await this.githubOAuthService.exchangeCodeForToken(code)
+		const encryptedToken = await this.tokenCipher.encrypt(token)
 		const profile = await this.githubOAuthService.getProfile(token)
 
 		let user = await this.usersRepository.findByEmail(profile.email)
 		if (!user) {
+			const password = await this.hashGenerator.hash('oauth')
 			user = User.create({
 				name: profile.name ?? profile.login,
 				email: profile.email,
-				password: 'oauth',
+				password,
 				role: 'DEVELOPER',
-				githubAccessToken: token,
+				githubAccessToken: encryptedToken,
 			})
 			await this.usersRepository.create(user)
 		} else {
-			user.githubAccessToken = token
+			user.githubAccessToken = encryptedToken
 			await this.usersRepository.save(user)
 		}
 

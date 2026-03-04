@@ -43,6 +43,7 @@ export class AuthenticateUserUseCase {
 
 		const accessToken = await this.encrypter.encrypt({
 			sub: user.id.toString(),
+			role: user.role,
 		})
 
 		return right({

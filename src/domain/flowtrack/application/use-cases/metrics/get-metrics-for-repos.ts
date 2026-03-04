@@ -23,7 +23,7 @@ type MetricsResult = {
 }
 
 @Injectable()
-export class MetricsService {
+export class GetMetricsForReposUseCase {
 	constructor(
 		private prisma: PrismaService,
 		private cacheRepository: CacheRepository,
@@ -39,7 +39,7 @@ export class MetricsService {
 		return { from, to }
 	}
 
-	async getMetricsForRepos(
+	async execute(
 		repositoryIds: string[],
 		window: Window,
 		options?: { refresh?: boolean },

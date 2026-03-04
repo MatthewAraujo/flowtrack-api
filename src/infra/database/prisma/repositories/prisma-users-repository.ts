@@ -1,5 +1,5 @@
-import { UsersRepository } from '@/domain/assistent/application/repositories/users-repository'
-import { User } from '@/domain/assistent/enterprise/entities/user'
+import { UsersRepository } from '@/domain/flowtrack/application/repositories/users-repository'
+import { User } from '@/domain/flowtrack/enterprise/entities/user'
 import { Injectable } from '@nestjs/common'
 import { PrismaUserMapper } from '../mappers/prisma-user-mapper'
 import { PrismaService } from '../prisma.service'

@@ -1,4 +1,4 @@
-import { Repository } from '@/domain/assistent/enterprise/entities/repository'
+import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
 
 export abstract class RepositoriesRepository {
 	abstract findByProviderRepoId(

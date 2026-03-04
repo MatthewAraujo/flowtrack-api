@@ -1,26 +1,15 @@
 import { Public } from '@/infra/auth/public'
-import { Controller, Get, HttpCode, Query } from '@nestjs/common'
+import { BadRequestException, Controller, Get, HttpCode, Query } from '@nestjs/common'
 import { EnvService } from '@/infra/env/env.service'
-import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
-import { UsersRepository } from '@/domain/assistent/application/repositories/users-repository'
-import { User } from '@/domain/assistent/enterprise/entities/user'
-import { Encrypter } from '@/domain/assistent/application/cryptography/encrypter'
-import { HashGenerator } from '@/domain/assistent/application/cryptography/hash-generator'
-import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { UniqueEntityID } from '@/core/entities/unique-entity-id'
+import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
+import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 
 @Controller('/auth/github')
 @Public()
 export class GithubCallbackController {
 	constructor(
 		private envService: EnvService,
-		private githubOAuthService: GithubOAuthService,
-		private usersRepository: UsersRepository,
-		private encrypter: Encrypter,
-		private tokenCipher: TokenCipher,
-		private hashGenerator: HashGenerator,
-		private prisma: PrismaService,
+		private githubCallback: GithubCallbackUseCase,
 	) {}
 
 	@Get('/callback')
@@ -30,53 +19,18 @@ export class GithubCallbackController {
 			return { error: 'Missing OAuth code' }
 		}
 
-		const token = await this.githubOAuthService.exchangeCodeForToken(code)
-		const encryptedToken = await this.tokenCipher.encrypt(token)
-		const profile = await this.githubOAuthService.getProfile(token)
-
-		let user = await this.usersRepository.findByEmail(profile.email)
-		if (!user) {
-			const password = await this.hashGenerator.hash('oauth')
-			user = User.create({
-				name: profile.name ?? profile.login,
-				email: profile.email,
-				password,
-				role: 'DEVELOPER',
-				githubAccessToken: encryptedToken,
-			})
-			await this.usersRepository.create(user)
-		} else {
-			user.githubAccessToken = encryptedToken
-			await this.usersRepository.save(user)
+		const result = await this.githubCallback.execute({ code })
+		if (result.isLeft()) {
+			const error = result.value
+			switch (error.constructor) {
+				case NotFoundError:
+					throw new BadRequestException(error.message)
+				default:
+					throw new BadRequestException(error.message)
+			}
 		}
 
-		await this.prisma.gitHubAccount.upsert({
-			where: {
-				provider_login: {
-					provider: 'github',
-					login: profile.login,
-				},
-			},
-			update: {
-				userId: user.id.toString(),
-				email: profile.email,
-				accessToken: encryptedToken,
-			},
-			create: {
-				id: new UniqueEntityID().toString(),
-				userId: user.id.toString(),
-				provider: 'github',
-				login: profile.login,
-				email: profile.email,
-				accessToken: encryptedToken,
-			},
-		})
-
-		const accessToken = await this.encrypter.encrypt({
-			sub: user.id.toString(),
-			role: user.role,
-		})
-
+		const { accessToken } = result.value
 		const uiCallback = this.envService.get('GITHUB_OAUTH_UI_REDIRECT_URL')
 		return {
 			access_token: accessToken,

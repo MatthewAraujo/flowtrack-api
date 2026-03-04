@@ -1,5 +1,5 @@
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
-import { Repository } from '@/domain/assistent/enterprise/entities/repository'
+import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
 import { Prisma, Repository as PrismaRepository } from 'generated/prisma'
 
 export class PrismaRepositoryMapper {

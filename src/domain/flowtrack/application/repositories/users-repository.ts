@@ -1,4 +1,4 @@
-import { User } from '@/domain/assistent/enterprise/entities/user'
+import { User } from '@/domain/flowtrack/enterprise/entities/user'
 
 export abstract class UsersRepository {
 	abstract findById(id: string): Promise<User | null>

@@ -1,5 +1,5 @@
-import { RegisterUserUseCase } from '@/domain/assistent/application/use-cases/auth/register-user'
-import { UserAlreadyExistsError } from '@/domain/assistent/application/use-cases/errors/user-already-exists-error'
+import { RegisterUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/register-user'
+import { UserAlreadyExistsError } from '@/domain/flowtrack/application/use-cases/errors/user-already-exists-error'
 import { Public } from '@/infra/auth/public'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import {

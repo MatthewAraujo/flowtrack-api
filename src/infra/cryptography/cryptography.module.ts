@@ -1,9 +1,9 @@
 import { Module } from '@nestjs/common'
 
-import { Encrypter } from '@/domain/assistent/application/cryptography/encrypter'
-import { HashComparer } from '@/domain/assistent/application/cryptography/hash-comparer'
-import { HashGenerator } from '@/domain/assistent/application/cryptography/hash-generator'
-import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
+import { Encrypter } from '@/domain/flowtrack/application/cryptography/encrypter'
+import { HashComparer } from '@/domain/flowtrack/application/cryptography/hash-comparer'
+import { HashGenerator } from '@/domain/flowtrack/application/cryptography/hash-generator'
+import { TokenCipher } from '@/domain/flowtrack/application/cryptography/token-cipher'
 
 import { BcryptHasher } from './bcrypt-hasher'
 import { JwtEncrypter } from './jwt-encrypter'

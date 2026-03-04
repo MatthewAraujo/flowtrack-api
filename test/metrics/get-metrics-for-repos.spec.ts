@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { MetricsService } from '@/infra/metrics/metrics.service'
+import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
 import { InMemoryCacheRepository } from 'test/repositories/in-memory-cache-repository'
 
-describe('MetricsService', () => {
+describe('GetMetricsForReposUseCase', () => {
 	let prisma: any
 	let cache: InMemoryCacheRepository
-	let sut: MetricsService
+	let sut: GetMetricsForReposUseCase
 
 	beforeEach(() => {
 		prisma = {
@@ -14,7 +14,7 @@ describe('MetricsService', () => {
 			reviewEvent: { findMany: vi.fn() },
 		}
 		cache = new InMemoryCacheRepository()
-		sut = new MetricsService(prisma, cache)
+		sut = new GetMetricsForReposUseCase(prisma, cache)
 	})
 
 	it('calculates core metrics', () => {
@@ -59,8 +59,8 @@ describe('MetricsService', () => {
 		prisma.pullRequestEvent.findMany.mockResolvedValue([])
 		prisma.reviewEvent.findMany.mockResolvedValue([])
 
-		const first = await sut.getMetricsForRepos(['repo-1'], '7d')
-		const second = await sut.getMetricsForRepos(['repo-1'], '7d')
+		const first = await sut.execute(['repo-1'], '7d')
+		const second = await sut.execute(['repo-1'], '7d')
 
 		expect(first.window).toBe('7d')
 		expect(second.window).toBe('7d')

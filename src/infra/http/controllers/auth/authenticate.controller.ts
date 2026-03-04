@@ -1,5 +1,5 @@
-import { AuthenticateUserUseCase } from '@/domain/assistent/application/use-cases/auth/authenticate-user'
-import { WrongCredentialsError } from '@/domain/assistent/application/use-cases/errors/wrong-credentials-error'
+import { AuthenticateUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/authenticate-user'
+import { WrongCredentialsError } from '@/domain/flowtrack/application/use-cases/errors/wrong-credentials-error'
 import { Public } from '@/infra/auth/public'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import {

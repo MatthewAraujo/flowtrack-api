@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
-import { RepositoriesRepository } from '@/domain/assistent/application/repositories/repositories-repository'
-import { Repository } from '@/domain/assistent/enterprise/entities/repository'
+import { RepositoriesRepository } from '@/domain/flowtrack/application/repositories/repositories-repository'
+import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
 import { PrismaService } from '../prisma.service'
 import { PrismaRepositoryMapper } from '../mappers/prisma-repository-mapper'
 

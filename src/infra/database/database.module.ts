@@ -1,5 +1,5 @@
-import { UsersRepository } from '@/domain/assistent/application/repositories/users-repository'
-import { RepositoriesRepository } from '@/domain/assistent/application/repositories/repositories-repository'
+import { UsersRepository } from '@/domain/flowtrack/application/repositories/users-repository'
+import { RepositoriesRepository } from '@/domain/flowtrack/application/repositories/repositories-repository'
 import { Module } from '@nestjs/common'
 import { CacheModule } from '../cache/cache.module'
 import { PrismaService } from './prisma/prisma.service'

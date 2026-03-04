@@ -5,16 +5,15 @@ import {
 	NotFoundException,
 	Param,
 	Query,
-	UnauthorizedException,
+	BadRequestException,
 } from '@nestjs/common'
 import { z } from 'zod'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
-import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { GitHubIngestionService } from '@/infra/github/github-ingestion.service'
-import { MetricsService } from '@/infra/metrics/metrics.service'
 import { Roles } from '@/infra/authorization/roles'
+import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
+import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),
@@ -28,12 +27,7 @@ const querySchema = z.object({
 @Controller('/repos/:repoId/metrics')
 @Roles('ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER')
 export class RepoMetricsController {
-	constructor(
-		private prisma: PrismaService,
-		private tokenCipher: TokenCipher,
-		private ingestionService: GitHubIngestionService,
-		private metricsService: MetricsService,
-	) {}
+	constructor(private getRepoMetrics: GetRepoMetricsUseCase) {}
 
 	@Get()
 	async handle(
@@ -42,36 +36,29 @@ export class RepoMetricsController {
 		@Query(new ZodValidationPipe(querySchema))
 		query: { window: '7d' | '30d' | '90d'; refresh?: string },
 	) {
-		await this.ensureAccess(user.sub, params.repoId)
-
-		const repository = await this.prisma.repository.findUnique({
-			where: { id: params.repoId },
+		const result = await this.getRepoMetrics.execute({
+			userId: user.sub,
+			repoId: params.repoId,
+			window: query.window,
+			refresh: query.refresh === 'true',
 		})
 
-		if (!repository) {
-			throw new NotFoundException('Repository not found')
+		if (result.isLeft()) {
+			const error = result.value
+			switch (error.constructor) {
+				case NotAllowedError:
+					throw new ForbiddenException('Forbidden')
+				case NotFoundError:
+					throw new NotFoundException(error.message)
+				default:
+					throw new BadRequestException(error.message)
+			}
 		}
 
-		const token = await this.getGitHubToken(user.sub)
-		const { from, to } = this.metricsService.getWindowRange(query.window)
-
-		await this.ingestionService.ingestRepositoryActivity({
-			token,
-			repositoryId: repository.id,
-			owner: repository.ownerLogin,
-			repo: repository.name,
-			from,
-			to,
-		})
-
-		const metrics = await this.metricsService.getMetricsForRepos(
-			[repository.id],
-			query.window,
-			{ refresh: query.refresh === 'true' },
-		)
+		const metrics = result.value
 
 		return {
-			repository_id: repository.id,
+			repository_id: metrics.repositoryId,
 			window: metrics.window,
 			from: metrics.from,
 			to: metrics.to,
@@ -84,32 +71,5 @@ export class RepoMetricsController {
 			productivity_score: metrics.productivityScore,
 			counts: metrics.counts,
 		}
-	}
-
-	private async ensureAccess(userId: string, repositoryId: string) {
-		const access = await this.prisma.userRepositoryAccess.findUnique({
-			where: {
-				userId_repositoryId: {
-					userId,
-					repositoryId,
-				},
-			},
-		})
-
-		if (!access) {
-			throw new ForbiddenException('Forbidden')
-		}
-	}
-
-	private async getGitHubToken(userId: string) {
-		const githubAccount = await this.prisma.gitHubAccount.findFirst({
-			where: { userId, provider: 'github' },
-		})
-
-		if (!githubAccount?.accessToken) {
-			throw new UnauthorizedException('Missing GitHub token')
-		}
-
-		return this.tokenCipher.decrypt(githubAccount.accessToken)
 	}
 }

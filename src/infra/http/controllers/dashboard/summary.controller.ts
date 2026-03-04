@@ -8,9 +8,9 @@ import {
 import { z } from 'zod'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
-import { MetricsService } from '@/infra/metrics/metrics.service'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Roles } from '@/infra/authorization/roles'
+import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 
 const querySchema = z.object({
 	repoIds: z.string().min(1),
@@ -21,10 +21,7 @@ const querySchema = z.object({
 @Controller('/dashboard/summary')
 @Roles('ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER')
 export class DashboardSummaryController {
-	constructor(
-		private prisma: PrismaService,
-		private metricsService: MetricsService,
-	) {}
+	constructor(private getDashboardSummary: GetDashboardSummaryUseCase) {}
 
 	@Get()
 	async handle(
@@ -38,16 +35,27 @@ export class DashboardSummaryController {
 			throw new BadRequestException('repoIds is required')
 		}
 
-		await this.ensureAccess(user.sub, repoIds)
+		const result = await this.getDashboardSummary.execute({
+			userId: user.sub,
+			repositoryIds: repoIds,
+			window: query.window,
+			refresh: query.refresh === 'true',
+		})
 
-		const metrics = await this.metricsService.getMetricsForRepos(
-			repoIds,
-			query.window,
-			{ refresh: query.refresh === 'true' },
-		)
+		if (result.isLeft()) {
+			const error = result.value
+			switch (error.constructor) {
+				case NotAllowedError:
+					throw new ForbiddenException('Forbidden')
+				default:
+					throw new BadRequestException(error.message)
+			}
+		}
+
+		const metrics = result.value
 
 		return {
-			repository_ids: repoIds,
+			repository_ids: metrics.repositoryIds,
 			window: metrics.window,
 			from: metrics.from,
 			to: metrics.to,
@@ -59,23 +67,6 @@ export class DashboardSummaryController {
 			net_lines: metrics.netLines,
 			productivity_score: metrics.productivityScore,
 			counts: metrics.counts,
-		}
-	}
-
-	private async ensureAccess(userId: string, repositoryIds: string[]) {
-		const access = await this.prisma.userRepositoryAccess.findMany({
-			where: {
-				userId,
-				repositoryId: { in: repositoryIds },
-			},
-			select: { repositoryId: true },
-		})
-
-		const accessIds = new Set(access.map((entry) => entry.repositoryId))
-		const missing = repositoryIds.filter((id) => !accessIds.has(id))
-
-		if (missing.length > 0) {
-			throw new ForbiddenException('Forbidden')
 		}
 	}
 }

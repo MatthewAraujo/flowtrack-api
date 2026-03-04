@@ -1,4 +1,4 @@
-import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
+import { TokenCipher } from '@/domain/flowtrack/application/cryptography/token-cipher'
 import { Injectable } from '@nestjs/common'
 import { EnvService } from '@/infra/env/env.service'
 import crypto from 'crypto'

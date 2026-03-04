@@ -6,15 +6,14 @@ import {
 	NotFoundException,
 	Param,
 	Query,
-	UnauthorizedException,
 } from '@nestjs/common'
 import { z } from 'zod'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
-import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { GitHubIngestionService } from '@/infra/github/github-ingestion.service'
 import { Roles } from '@/infra/authorization/roles'
+import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
+import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),
@@ -28,11 +27,7 @@ const querySchema = z.object({
 @Controller('/repos/:repoId/pulls')
 @Roles('ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER')
 export class RepoPullsController {
-	constructor(
-		private prisma: PrismaService,
-		private tokenCipher: TokenCipher,
-		private ingestionService: GitHubIngestionService,
-	) {}
+	constructor(private getRepoPulls: GetRepoPullsUseCase) {}
 
 	@Get()
 	async handle(
@@ -41,17 +36,6 @@ export class RepoPullsController {
 		@Query(new ZodValidationPipe(querySchema))
 		query: { from: string; to: string },
 	) {
-		await this.ensureAccess(user.sub, params.repoId)
-
-		const repository = await this.prisma.repository.findUnique({
-			where: { id: params.repoId },
-		})
-
-		if (!repository) {
-			throw new NotFoundException('Repository not found')
-		}
-
-		const token = await this.getGitHubToken(user.sub)
 		const from = new Date(query.from)
 		const to = new Date(query.to)
 
@@ -59,19 +43,27 @@ export class RepoPullsController {
 			throw new BadRequestException('Invalid date range')
 		}
 
-		await this.ingestionService.ingestRepositoryActivity({
-			token,
-			repositoryId: repository.id,
-			owner: repository.ownerLogin,
-			repo: repository.name,
+		const result = await this.getRepoPulls.execute({
+			userId: user.sub,
+			repoId: params.repoId,
 			from,
 			to,
 		})
 
-		const pulls = await this.ingestionService.listPullRequestEvents(repository.id, from, to)
+		if (result.isLeft()) {
+			const error = result.value
+			switch (error.constructor) {
+				case NotAllowedError:
+					throw new ForbiddenException('Forbidden')
+				case NotFoundError:
+					throw new NotFoundException(error.message)
+				default:
+					throw new BadRequestException(error.message)
+			}
+		}
 
 		return {
-			items: pulls.map((pull) => ({
+			items: result.value.items.map((pull) => ({
 				id: pull.id,
 				number: pull.number,
 				title: pull.title,
@@ -86,32 +78,5 @@ export class RepoPullsController {
 				changed_files: pull.changedFiles,
 			})),
 		}
-	}
-
-	private async ensureAccess(userId: string, repositoryId: string) {
-		const access = await this.prisma.userRepositoryAccess.findUnique({
-			where: {
-				userId_repositoryId: {
-					userId,
-					repositoryId,
-				},
-			},
-		})
-
-		if (!access) {
-			throw new ForbiddenException('Forbidden')
-		}
-	}
-
-	private async getGitHubToken(userId: string) {
-		const githubAccount = await this.prisma.gitHubAccount.findFirst({
-			where: { userId, provider: 'github' },
-		})
-
-		if (!githubAccount?.accessToken) {
-			throw new UnauthorizedException('Missing GitHub token')
-		}
-
-		return this.tokenCipher.decrypt(githubAccount.accessToken)
 	}
 }

@@ -1,5 +1,5 @@
 import { Either, left, right } from '@/core/either'
-import { User } from '@/domain/assistent/enterprise/entities/user'
+import { User } from '@/domain/flowtrack/enterprise/entities/user'
 import { Injectable } from '@nestjs/common'
 import { HashGenerator } from '../../cryptography/hash-generator'
 import { UsersRepository } from '../../repositories/users-repository'

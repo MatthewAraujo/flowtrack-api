@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { GitHubIngestionService } from '@/infra/github/github-ingestion.service'
+import { IngestRepositoryActivityUseCase } from '@/domain/flowtrack/application/use-cases/github/ingest-repository-activity'
 
-describe('GitHubIngestionService', () => {
+describe('IngestRepositoryActivityUseCase', () => {
 	let githubService: {
 		listCommits: ReturnType<typeof vi.fn>
 		listPullRequests: ReturnType<typeof vi.fn>
@@ -9,7 +9,7 @@ describe('GitHubIngestionService', () => {
 		listReviews: ReturnType<typeof vi.fn>
 	}
 	let prisma: any
-	let sut: GitHubIngestionService
+	let sut: IngestRepositoryActivityUseCase
 
 	beforeEach(() => {
 		githubService = {
@@ -25,7 +25,7 @@ describe('GitHubIngestionService', () => {
 			reviewEvent: { upsert: vi.fn(), findMany: vi.fn() },
 		}
 
-		sut = new GitHubIngestionService(githubService as any, prisma)
+		sut = new IngestRepositoryActivityUseCase(githubService as any, prisma)
 	})
 
 	it('ingests commits, pulls, and reviews', async () => {
@@ -78,7 +78,7 @@ describe('GitHubIngestionService', () => {
 			},
 		])
 
-		const result = await sut.ingestRepositoryActivity({
+		const result = await sut.execute({
 			token: 'token',
 			repositoryId: 'repo-1',
 			owner: 'acme',

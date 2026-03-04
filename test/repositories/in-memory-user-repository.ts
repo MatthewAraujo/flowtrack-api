@@ -1,6 +1,6 @@
 import { DomainEvents } from '@/core/events/domain-events'
-import { UsersRepository } from '@/domain/assistent/application/repositories/users-repository'
-import { User } from '@/domain/assistent/enterprise/entities/user'
+import { UsersRepository } from '@/domain/flowtrack/application/repositories/users-repository'
+import { User } from '@/domain/flowtrack/enterprise/entities/user'
 
 export class InMemoryUsersRepository implements UsersRepository {
 	public items: User[] = []

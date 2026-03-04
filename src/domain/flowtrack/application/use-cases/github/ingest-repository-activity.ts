@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common'
-import { GitHubService } from './github.service'
+import { GitHubService } from '@/infra/github/github.service'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
@@ -13,13 +13,13 @@ type IngestionParams = {
 }
 
 @Injectable()
-export class GitHubIngestionService {
+export class IngestRepositoryActivityUseCase {
 	constructor(
 		private githubService: GitHubService,
 		private prisma: PrismaService,
 	) {}
 
-	async ingestRepositoryActivity(params: IngestionParams) {
+	async execute(params: IngestionParams) {
 		const { token, repositoryId, owner, repo, from, to } = params
 
 		const commits = await this.githubService.listCommits(token, owner, repo, from, to)

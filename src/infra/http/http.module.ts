@@ -13,13 +13,20 @@ import { RepoCommitsController } from './controllers/metrics/repo-commits.contro
 import { RepoPullsController } from './controllers/metrics/repo-pulls.controller'
 import { RepoMetricsController } from './controllers/metrics/repo-metrics.controller'
 import { DashboardSummaryController } from './controllers/dashboard/summary.controller'
-import { RegisterUserUseCase } from '@/domain/assistent/application/use-cases/auth/register-user'
-import { AuthenticateUserUseCase } from '@/domain/assistent/application/use-cases//auth/authenticate-user'
+import { RegisterUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/register-user'
+import { AuthenticateUserUseCase } from '@/domain/flowtrack/application/use-cases//auth/authenticate-user'
 import { CacheModule } from '../cache/cache.module'
 import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
 import { CryptographyModule } from '../cryptography/cryptography.module'
 import { GitHubModule } from '../github/github.module'
-import { MetricsModule } from '../metrics/metrics.module'
+import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
+import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
+import { IngestRepositoryActivityUseCase } from '@/domain/flowtrack/application/use-cases/github/ingest-repository-activity'
+import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
+import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
+import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
+import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
+import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
 
 @Module({
 	imports: [
@@ -29,7 +36,6 @@ import { MetricsModule } from '../metrics/metrics.module'
 		EnvModule,
 		CacheModule,
 		GitHubModule,
-		MetricsModule,
 	],
 	controllers: [
 		CreateAccountController,
@@ -46,6 +52,14 @@ import { MetricsModule } from '../metrics/metrics.module'
 	providers: [
 		RegisterUserUseCase,
 		AuthenticateUserUseCase,
+		ListReposUseCase,
+		GithubCallbackUseCase,
+		IngestRepositoryActivityUseCase,
+		GetRepoCommitsUseCase,
+		GetRepoPullsUseCase,
+		GetRepoMetricsUseCase,
+		GetMetricsForReposUseCase,
+		GetDashboardSummaryUseCase,
 		GithubOAuthService,
 	],
 })

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto'
-import { UploadParams, Uploader } from '@/domain/assistent/application/storage/uploader'
+import { UploadParams, Uploader } from '@/domain/flowtrack/application/storage/uploader'
 
 interface Upload {
 	fileName: string

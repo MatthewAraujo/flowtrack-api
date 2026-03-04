@@ -42,6 +42,7 @@ export class RegisterUserUseCase {
 			name,
 			email,
 			password: hashedPassword,
+			role: 'DEVELOPER',
 		})
 
 		await this.usersRepository.create(user)

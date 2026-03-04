@@ -29,6 +29,21 @@ export class PrismaUsersRepository implements UsersRepository {
 			data,
 		})
 	}
+
+	async save(user: User): Promise<void> {
+		const data = PrismaUserMapper.toPrisma(user)
+
+		await this.prisma.user.update({
+			where: { id: user.id.toString() },
+			data: {
+				name: data.name,
+				email: data.email,
+				password: data.password,
+				role: data.role,
+				githubAccessToken: data.githubAccessToken,
+			},
+		})
+	}
 	async findByName(name: string): Promise<User | null> {
 		const user = await this.prisma.user.findFirst({
 			where: {

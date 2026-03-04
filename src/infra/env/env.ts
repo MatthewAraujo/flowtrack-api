@@ -8,6 +8,10 @@ export const envSchema = z.object({
 	REDIS_PORT: z.coerce.number().optional().default(6379),
 	REDIS_DB: z.coerce.number().optional().default(0),
 	PORT: z.coerce.number().optional().default(3333),
+	GITHUB_CLIENT_ID: z.string(),
+	GITHUB_CLIENT_SECRET: z.string(),
+	GITHUB_OAUTH_CALLBACK_URL: z.string().url(),
+	GITHUB_OAUTH_UI_REDIRECT_URL: z.string().url(),
 })
 
 export type Env = z.infer<typeof envSchema>

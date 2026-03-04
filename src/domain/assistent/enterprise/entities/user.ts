@@ -5,7 +5,11 @@ export interface UserProps {
 	name: string
 	email: string
 	password: string
+	role: UserRole
+	githubAccessToken?: string | null
 }
+
+export type UserRole = 'ENGINEERING_MANAGER' | 'TECH_LEAD' | 'DEVELOPER'
 
 export class User extends Entity<UserProps> {
 	get name() {
@@ -18,6 +22,18 @@ export class User extends Entity<UserProps> {
 
 	get password() {
 		return this.props.password
+	}
+
+	get role() {
+		return this.props.role
+	}
+
+	get githubAccessToken() {
+		return this.props.githubAccessToken ?? null
+	}
+
+	set githubAccessToken(value: string | null | undefined) {
+		this.props.githubAccessToken = value ?? null
 	}
 
 	static create(props: UserProps, id?: UniqueEntityID) {

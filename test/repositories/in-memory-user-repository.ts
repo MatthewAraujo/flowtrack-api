@@ -20,6 +20,18 @@ export class InMemoryUsersRepository implements UsersRepository {
 
 		DomainEvents.dispatchEventsForAggregate(user.id)
 	}
+
+	async save(user: User) {
+		const itemIndex = this.items.findIndex((item) => item.id.equals(user.id))
+
+		if (itemIndex === -1) {
+			this.items.push(user)
+		} else {
+			this.items[itemIndex] = user
+		}
+
+		DomainEvents.dispatchEventsForAggregate(user.id)
+	}
 	async findByName(name: string) {
 		const user = this.items.find((item) => item.name.toLowerCase() === name.toLowerCase())
 

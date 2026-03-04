@@ -6,6 +6,7 @@ import { EnvService } from '../env/env.service'
 
 const tokenPayloadSchema = z.object({
 	sub: z.string().uuid(),
+	role: z.enum(['ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER']),
 })
 
 export type UserPayload = z.infer<typeof tokenPayloadSchema>

@@ -22,6 +22,42 @@ model User {
   role              String
   githubAccessToken String?
   repoAccess        UserRepositoryAccess[]
+  githubAccounts    GitHubAccount[]
+  userRoles         UserRole[]
+}
+
+model Role {
+  id    String @id
+  name  String @unique
+  users UserRole[]
+}
+
+model UserRole {
+  id     String @id
+  userId String
+  roleId String
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@unique([userId, roleId])
+  @@index([roleId])
+}
+
+model GitHubAccount {
+  id          String   @id
+  userId      String
+  provider    String
+  login       String
+  email       String?
+  accessToken String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([provider, login])
+  @@index([userId])
 }
 
 model Repository {
@@ -36,6 +72,10 @@ model Repository {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   access         UserRepositoryAccess[]
+  commitEvents   CommitEvent[]
+  pullEvents     PullRequestEvent[]
+  reviewEvents   ReviewEvent[]
+  metricSnapshots MetricSnapshot[]
 
   @@unique([provider, providerRepoId])
 }
@@ -50,4 +90,82 @@ model UserRepositoryAccess {
   repository   Repository @relation(fields: [repositoryId], references: [id])
 
   @@unique([userId, repositoryId])
+}
+
+model CommitEvent {
+  id            String   @id
+  repositoryId  String
+  sha           String
+  authorLogin   String?
+  authorEmail   String?
+  message       String?
+  committedAt   DateTime
+  createdAt     DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id])
+
+  @@unique([repositoryId, sha])
+  @@index([repositoryId, committedAt])
+}
+
+model PullRequestEvent {
+  id           String   @id
+  repositoryId String
+  number       Int
+  githubId     Int
+  title        String
+  state        String
+  isMerged     Boolean
+  authorLogin  String?
+  createdAt    DateTime
+  closedAt     DateTime?
+  mergedAt     DateTime?
+  updatedAt    DateTime?
+  additions    Int?
+  deletions    Int?
+  changedFiles Int?
+
+  repository Repository @relation(fields: [repositoryId], references: [id])
+
+  @@unique([repositoryId, number])
+  @@index([repositoryId, createdAt])
+  @@index([repositoryId, closedAt])
+  @@index([repositoryId, mergedAt])
+}
+
+model ReviewEvent {
+  id           String   @id
+  repositoryId String
+  pullNumber   Int
+  githubId     Int
+  reviewerLogin String?
+  state        String
+  submittedAt  DateTime
+  createdAt    DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id])
+
+  @@unique([repositoryId, githubId])
+  @@index([repositoryId, submittedAt])
+  @@index([repositoryId, pullNumber])
+}
+
+model MetricSnapshot {
+  id                   String   @id
+  repositoryId         String
+  window               String
+  from                 DateTime
+  to                   DateTime
+  meanCommitsPerWeek   Float?
+  meanPrCycleTimeHours Float?
+  prRejectionRate      Float?
+  linesAdded           Int?
+  linesDeleted         Int?
+  netLines             Int?
+  productivityScore    Float?
+  createdAt            DateTime @default(now())
+
+  repository Repository @relation(fields: [repositoryId], references: [id])
+
+  @@index([repositoryId, window, from, to])
 }

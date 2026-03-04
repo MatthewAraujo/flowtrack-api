@@ -25,11 +25,20 @@ export class ListReposController {
 	) {
 		const currentUser = await this.usersRepository.findById(user.sub)
 
-		if (!currentUser?.githubAccessToken) {
+		const githubAccount = await this.prisma.gitHubAccount.findFirst({
+			where: {
+				userId: user.sub,
+				provider: 'github',
+			},
+		})
+
+		const encryptedToken = githubAccount?.accessToken ?? currentUser?.githubAccessToken
+
+		if (!encryptedToken) {
 			return { items: [] }
 		}
 
-		const token = await this.tokenCipher.decrypt(currentUser.githubAccessToken)
+		const token = await this.tokenCipher.decrypt(encryptedToken)
 		const repos = await this.githubService.listRepositories(token)
 
 		const storedRepos = await Promise.all(

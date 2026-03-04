@@ -7,6 +7,8 @@ import { User } from '@/domain/assistent/enterprise/entities/user'
 import { Encrypter } from '@/domain/assistent/application/cryptography/encrypter'
 import { HashGenerator } from '@/domain/assistent/application/cryptography/hash-generator'
 import { TokenCipher } from '@/domain/assistent/application/cryptography/token-cipher'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
 @Controller('/auth/github')
 @Public()
@@ -18,6 +20,7 @@ export class GithubCallbackController {
 		private encrypter: Encrypter,
 		private tokenCipher: TokenCipher,
 		private hashGenerator: HashGenerator,
+		private prisma: PrismaService,
 	) {}
 
 	@Get('/callback')
@@ -46,6 +49,28 @@ export class GithubCallbackController {
 			user.githubAccessToken = encryptedToken
 			await this.usersRepository.save(user)
 		}
+
+		await this.prisma.gitHubAccount.upsert({
+			where: {
+				provider_login: {
+					provider: 'github',
+					login: profile.login,
+				},
+			},
+			update: {
+				userId: user.id.toString(),
+				email: profile.email,
+				accessToken: encryptedToken,
+			},
+			create: {
+				id: new UniqueEntityID().toString(),
+				userId: user.id.toString(),
+				provider: 'github',
+				login: profile.login,
+				email: profile.email,
+				accessToken: encryptedToken,
+			},
+		})
 
 		const accessToken = await this.encrypter.encrypt({
 			sub: user.id.toString(),

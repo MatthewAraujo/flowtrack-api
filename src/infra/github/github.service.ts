@@ -7,6 +7,7 @@ type GitHubRepo = {
 	name: string
 	full_name: string
 	private: boolean
+	updated_at: string
 	owner: {
 		login: string
 	}
@@ -48,6 +49,27 @@ type GitHubPullDetails = GitHubPull & {
 	changed_files: number
 }
 
+type GitHubSearchIssue = {
+	id: number
+	number: number
+	title: string
+	state: string
+	user?: {
+		login: string
+	}
+	created_at: string
+	updated_at: string
+	closed_at: string | null
+	pull_request?: {
+		url: string
+	}
+}
+
+type GitHubSearchResponse = {
+	total_count: number
+	items: GitHubSearchIssue[]
+}
+
 type GitHubReview = {
 	id: number
 	state: string
@@ -62,6 +84,7 @@ const CACHE_TTL = {
 	repos: 300,
 	commits: 600,
 	pulls: 600,
+	pullSearch: 300,
 	reviews: 600,
 	pullDetails: 600,
 }
@@ -74,7 +97,7 @@ export class GitHubService {
 		const tokenKey = this.tokenKey(token)
 		return this.paginate<GitHubRepo>((page) =>
 			this.requestJson<GitHubRepo[]>(
-				`https://api.github.com/user/repos?per_page=${DEFAULT_PER_PAGE}&page=${page}`,
+				`https://api.github.com/user/repos?per_page=${DEFAULT_PER_PAGE}&page=${page}&affiliation=owner&visibility=all`,
 				token,
 				{
 					cacheKey: `github:${tokenKey}:repos:page:${page}`,
@@ -113,7 +136,12 @@ export class GitHubService {
 		repo: string,
 		from: Date,
 		to: Date,
+		options?: { exhaustive?: boolean; useSearch?: boolean },
 	): Promise<GitHubPull[]> {
+		if (options?.useSearch) {
+			return this.listPullRequestsBySearch(token, owner, repo, from, to)
+		}
+
 		const tokenKey = this.tokenKey(token)
 		const results: GitHubPull[] = []
 		let page = 1
@@ -135,9 +163,11 @@ export class GitHubService {
 				break
 			}
 
-			const oldest = data[data.length - 1]
-			if (oldest && new Date(oldest.updated_at).getTime() < fromTime) {
-				break
+			if (!options?.exhaustive) {
+				const oldest = data[data.length - 1]
+				if (oldest && new Date(oldest.updated_at).getTime() < fromTime) {
+					break
+				}
 			}
 
 			page += 1
@@ -154,6 +184,60 @@ export class GitHubService {
 				(mergedAt !== null && mergedAt >= fromTime && mergedAt <= to.getTime())
 			)
 		})
+	}
+
+	private async listPullRequestsBySearch(
+		token: string,
+		owner: string,
+		repo: string,
+		from: Date,
+		to: Date,
+	): Promise<GitHubPull[]> {
+		const tokenKey = this.tokenKey(token)
+		const results: GitHubPull[] = []
+		let page = 1
+		const fromDate = from.toISOString().slice(0, 10)
+		const toDate = to.toISOString().slice(0, 10)
+		const maxResults = 1000
+
+		while (true) {
+			const q = `repo:${owner}/${repo}+is:pr+updated:${fromDate}..${toDate}`
+			const data = await this.requestJson<GitHubSearchResponse>(
+				`https://api.github.com/search/issues?q=${encodeURIComponent(q)}&per_page=${DEFAULT_PER_PAGE}&page=${page}`,
+				token,
+				{
+					cacheKey: `github:${tokenKey}:pulls-search:${owner}/${repo}:${fromDate}:${toDate}:page:${page}`,
+					ttlSeconds: CACHE_TTL.pullSearch,
+				},
+			)
+
+			const items = data.items ?? []
+			for (const item of items) {
+				results.push({
+					id: item.id,
+					number: item.number,
+					title: item.title,
+					state: item.state,
+					user: item.user,
+					created_at: item.created_at,
+					updated_at: item.updated_at,
+					closed_at: item.closed_at,
+					merged_at: null,
+				})
+			}
+
+			if (items.length < DEFAULT_PER_PAGE) {
+				break
+			}
+
+			if (page * DEFAULT_PER_PAGE >= maxResults) {
+				break
+			}
+
+			page += 1
+		}
+
+		return results
 	}
 
 	async getPullDetails(

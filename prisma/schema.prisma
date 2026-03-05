@@ -72,6 +72,8 @@ model Repository {
   isPrivate      Boolean
   ownerLogin     String
   defaultBranch  String?
+  lastProviderUpdatedAt DateTime?
+  lastSyncedAt DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   access         UserRepositoryAccess[]

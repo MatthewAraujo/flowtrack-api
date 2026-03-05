@@ -71,9 +71,29 @@ export class SyncProfileDataUseCase {
 
 	private async syncRepositories(token: string, userId: string) {
 		const repos = await this.githubService.listRepositories(token)
-		const results: Array<{ id: string; ownerLogin: string; name: string }> = []
+		const results: Array<{
+			id: string
+			ownerLogin: string
+			name: string
+			shouldSync: boolean
+			lastSyncedAt: Date | null
+		}> = []
 
 		for (const repo of repos) {
+			const providerUpdatedAt = new Date(repo.updated_at)
+			const existing = await this.prisma.repository.findUnique({
+				where: {
+					provider_providerRepoId: {
+						provider: 'github',
+						providerRepoId: repo.id.toString(),
+					},
+				},
+				select: { lastProviderUpdatedAt: true, lastSyncedAt: true },
+			})
+			const previousUpdatedAt = existing?.lastProviderUpdatedAt ?? null
+			const lastSyncedAt = existing?.lastSyncedAt ?? null
+			const shouldSync = !lastSyncedAt || providerUpdatedAt.getTime() > lastSyncedAt.getTime()
+
 			const stored = await this.prisma.repository.upsert({
 				where: {
 					provider_providerRepoId: {
@@ -87,6 +107,7 @@ export class SyncProfileDataUseCase {
 					isPrivate: repo.private,
 					ownerLogin: repo.owner.login,
 					defaultBranch: repo.default_branch ?? null,
+					lastProviderUpdatedAt: providerUpdatedAt,
 				},
 				create: {
 					id: new UniqueEntityID().toString(),
@@ -97,6 +118,7 @@ export class SyncProfileDataUseCase {
 					isPrivate: repo.private,
 					ownerLogin: repo.owner.login,
 					defaultBranch: repo.default_branch ?? null,
+					lastProviderUpdatedAt: providerUpdatedAt,
 				},
 			})
 
@@ -119,6 +141,8 @@ export class SyncProfileDataUseCase {
 				id: stored.id,
 				ownerLogin: stored.ownerLogin,
 				name: stored.name,
+				shouldSync,
+				lastSyncedAt,
 			})
 		}
 
@@ -143,7 +167,9 @@ export class SyncProfileDataUseCase {
 			})
 		}
 
-		const kind: SyncKind = options?.kind ?? 'DAILY'
+		const requestedKind: SyncKind = options?.kind ?? 'DAILY'
+		const shouldForceFull = !githubAccount.lastFullSyncAt
+		const kind: SyncKind = shouldForceFull ? 'FULL' : requestedKind
 		const lastSync = this.maxDate([
 			githubAccount.lastDailySyncAt,
 			githubAccount.lastManualSyncAt,
@@ -166,12 +192,22 @@ export class SyncProfileDataUseCase {
 		const repositories = await this.syncRepositories(token, userId)
 		const { from, to } = kind === 'FULL' ? this.buildFullWindow() : this.buildWindow(1)
 		const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)))
+		const maxDurationMs = kind === 'FULL' ? 5 * 60 * 1000 : null
+		const syncStart = Date.now()
+		let completedAll = true
 
 		let commitsUpserted = 0
 		let pullsUpserted = 0
 		let reviewsUpserted = 0
 
 		for (const repo of repositories) {
+			if (!repo.shouldSync) {
+				continue
+			}
+			if (maxDurationMs !== null && Date.now() - syncStart > maxDurationMs) {
+				completedAll = false
+				break
+			}
 			const result = await this.ingestion.execute({
 				token,
 				repositoryId: repo.id,
@@ -179,25 +215,36 @@ export class SyncProfileDataUseCase {
 				repo: repo.name,
 				from,
 				to,
+				exhaustivePulls: kind === 'FULL',
+				useSearchPulls: kind !== 'FULL',
 			})
 
 			commitsUpserted += result.commitsUpserted
 			pullsUpserted += result.pullsUpserted
 			reviewsUpserted += result.reviewsUpserted
+
+			await this.prisma.repository.update({
+				where: { id: repo.id },
+				data: { lastSyncedAt: to },
+			})
 		}
 
 		const syncedAt = new Date()
 		const updateData =
 			kind === 'FULL'
-				? { lastFullSyncAt: syncedAt }
+				? completedAll
+					? { lastFullSyncAt: syncedAt }
+					: null
 				: kind === 'MANUAL'
 					? { lastManualSyncAt: syncedAt }
 					: { lastDailySyncAt: syncedAt }
 
-		await this.prisma.gitHubAccount.update({
-			where: { id: githubAccount.id },
-			data: updateData,
-		})
+		if (updateData) {
+			await this.prisma.gitHubAccount.update({
+				where: { id: githubAccount.id },
+				data: updateData,
+			})
+		}
 
 		return this.buildSyncResult({
 			repositories: repositories.length,

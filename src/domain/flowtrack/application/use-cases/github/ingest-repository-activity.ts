@@ -10,6 +10,8 @@ type IngestionParams = {
 	repo: string
 	from: Date
 	to: Date
+	exhaustivePulls?: boolean
+	useSearchPulls?: boolean
 }
 
 @Injectable()
@@ -20,10 +22,13 @@ export class IngestRepositoryActivityUseCase {
 	) {}
 
 	async execute(params: IngestionParams) {
-		const { token, repositoryId, owner, repo, from, to } = params
+		const { token, repositoryId, owner, repo, from, to, exhaustivePulls, useSearchPulls } = params
 
 		const commits = await this.githubService.listCommits(token, owner, repo, from, to)
-		const pulls = await this.githubService.listPullRequests(token, owner, repo, from, to)
+		const pulls = await this.githubService.listPullRequests(token, owner, repo, from, to, {
+			exhaustive: exhaustivePulls,
+			useSearch: useSearchPulls,
+		})
 
 		let commitsUpserted = 0
 		for (const commit of commits) {
@@ -68,14 +73,14 @@ export class IngestRepositoryActivityUseCase {
 				},
 				update: {
 					githubId: BigInt(pull.id),
-					title: pull.title,
-					state: pull.state,
-					isMerged: Boolean(pull.merged_at),
-					authorLogin: pull.user?.login ?? null,
-					createdAt: new Date(pull.created_at),
-					updatedAt: new Date(pull.updated_at),
-					closedAt: pull.closed_at ? new Date(pull.closed_at) : null,
-					mergedAt: pull.merged_at ? new Date(pull.merged_at) : null,
+					title: details.title,
+					state: details.state,
+					isMerged: Boolean(details.merged_at),
+					authorLogin: details.user?.login ?? null,
+					createdAt: new Date(details.created_at),
+					updatedAt: new Date(details.updated_at),
+					closedAt: details.closed_at ? new Date(details.closed_at) : null,
+					mergedAt: details.merged_at ? new Date(details.merged_at) : null,
 					additions: details.additions,
 					deletions: details.deletions,
 					changedFiles: details.changed_files,
@@ -85,14 +90,14 @@ export class IngestRepositoryActivityUseCase {
 					repositoryId,
 					number: pull.number,
 					githubId: BigInt(pull.id),
-					title: pull.title,
-					state: pull.state,
-					isMerged: Boolean(pull.merged_at),
-					authorLogin: pull.user?.login ?? null,
-					createdAt: new Date(pull.created_at),
-					updatedAt: new Date(pull.updated_at),
-					closedAt: pull.closed_at ? new Date(pull.closed_at) : null,
-					mergedAt: pull.merged_at ? new Date(pull.merged_at) : null,
+					title: details.title,
+					state: details.state,
+					isMerged: Boolean(details.merged_at),
+					authorLogin: details.user?.login ?? null,
+					createdAt: new Date(details.created_at),
+					updatedAt: new Date(details.updated_at),
+					closedAt: details.closed_at ? new Date(details.closed_at) : null,
+					mergedAt: details.merged_at ? new Date(details.merged_at) : null,
 					additions: details.additions,
 					deletions: details.deletions,
 					changedFiles: details.changed_files,

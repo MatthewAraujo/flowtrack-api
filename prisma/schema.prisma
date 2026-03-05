@@ -51,6 +51,7 @@ model GitHubAccount {
   login       String
   email       String?
   accessToken String
+  lastFullSyncAt DateTime?
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

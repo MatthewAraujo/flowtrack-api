@@ -30,7 +30,16 @@ export class SyncProfileDataUseCase {
 		return { from, to }
 	}
 
-	async execute(userId: string, options?: { days?: number }): Promise<SyncResult> {
+	private buildFullWindow() {
+		const to = new Date()
+		const from = new Date('2008-01-01T00:00:00.000Z')
+		return { from, to }
+	}
+
+	async execute(
+		userId: string,
+		options?: { days?: number; fullHistory?: boolean; force?: boolean },
+	): Promise<SyncResult> {
 		const githubAccount = await this.prisma.gitHubAccount.findFirst({
 			where: { userId, provider: 'github' },
 		})
@@ -49,6 +58,29 @@ export class SyncProfileDataUseCase {
 			}
 		}
 
+		if (!options?.force) {
+			const lastSync = await this.cacheRepository.get<string>(`profile:last_sync:${userId}`)
+			if (lastSync) {
+				const lastSyncTime = new Date(lastSync).getTime()
+				if (Number.isFinite(lastSyncTime)) {
+					const nextAllowed = lastSyncTime + 24 * 60 * 60 * 1000
+					if (Date.now() < nextAllowed) {
+						const syncedAt = new Date().toISOString()
+						const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
+						const days = options?.days ?? defaultDays
+						return {
+							repositories: 0,
+							commitsUpserted: 0,
+							pullsUpserted: 0,
+							reviewsUpserted: 0,
+							syncedAt,
+							days,
+						}
+					}
+				}
+			}
+		}
+
 		const token = await this.tokenCipher.decrypt(githubAccount.accessToken)
 		const access = await this.prisma.userRepositoryAccess.findMany({
 			where: { userId },
@@ -61,7 +93,7 @@ export class SyncProfileDataUseCase {
 
 		const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
 		const days = options?.days ?? defaultDays
-		const { from, to } = this.buildWindow(days)
+		const { from, to } = options?.fullHistory ? this.buildFullWindow() : this.buildWindow(days)
 
 		let commitsUpserted = 0
 		let pullsUpserted = 0

@@ -3,42 +3,35 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoCommitsUseCase', () => {
 	let prisma: any
-	let tokenCipher: { decrypt: ReturnType<typeof vi.fn> }
-	let ingestion: { execute: ReturnType<typeof vi.fn>; listCommitEvents: ReturnType<typeof vi.fn> }
+	let repositoryAccess: { hasAccess: ReturnType<typeof vi.fn> }
 	let sut: GetRepoCommitsUseCase
 
 	beforeEach(() => {
 		prisma = {
-			userRepositoryAccess: { findUnique: vi.fn() },
 			repository: { findUnique: vi.fn() },
-			gitHubAccount: { findFirst: vi.fn() },
+			commitEvent: { findMany: vi.fn() },
 		}
-		tokenCipher = { decrypt: vi.fn().mockResolvedValue('token') }
-		ingestion = {
-			execute: vi.fn(),
-			listCommitEvents: vi.fn().mockResolvedValue([
-				{
-					id: 'c1',
-					sha: 'abc',
-					authorLogin: null,
-					authorEmail: null,
-					message: null,
-					committedAt: new Date(),
-				},
-			]),
-		}
+		repositoryAccess = { hasAccess: vi.fn().mockResolvedValue(true) }
 
-		sut = new GetRepoCommitsUseCase(prisma, tokenCipher as any, ingestion as any)
+		sut = new GetRepoCommitsUseCase(prisma, repositoryAccess as any)
 	})
 
 	it('returns commits when access granted', async () => {
-		prisma.userRepositoryAccess.findUnique.mockResolvedValue({ id: 'access-1' })
 		prisma.repository.findUnique.mockResolvedValue({
 			id: 'repo-1',
 			ownerLogin: 'acme',
 			name: 'flowtrack',
 		})
-		prisma.gitHubAccount.findFirst.mockResolvedValue({ accessToken: 'encrypted' })
+		prisma.commitEvent.findMany.mockResolvedValue([
+			{
+				id: 'c1',
+				sha: 'abc',
+				authorLogin: null,
+				authorEmail: null,
+				message: null,
+				committedAt: new Date('2026-03-01T12:00:00.000Z'),
+			},
+		])
 
 		const result = await sut.execute({
 			userId: 'user-1',
@@ -48,6 +41,9 @@ describe('GetRepoCommitsUseCase', () => {
 		})
 
 		expect(result.isRight()).toBe(true)
-		expect(result.value.items).toHaveLength(1)
+		if (result.isRight()) {
+			expect(result.value.items).toHaveLength(1)
+			expect(result.value.items[0].sha).toBe('abc')
+		}
 	})
 })

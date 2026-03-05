@@ -1,8 +1,14 @@
 import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
 import { CacheRepository } from '@/infra/cache/cache-repository'
+import { getCachedJson, setCachedJson } from '@/infra/cache/cache-json'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { calculateMetrics } from './metrics-calculator'
+import {
+	fromMetricsAggregateCache,
+	toMetricsAggregateCache,
+	type MetricsAggregateCache,
+} from './metrics-cache'
 
 type Window = '7d' | '30d' | '90d'
 
@@ -34,31 +40,9 @@ export class GetMetricsForReposUseCase {
 		const cacheKey = `metrics:${window}:${repositoryIds.sort().join(',')}:${from.toISOString()}:${to.toISOString()}`
 
 		if (!options?.refresh) {
-			const cached = await this.cacheRepository.get(cacheKey)
+			const cached = await getCachedJson<MetricsAggregateCache>(this.cacheRepository, cacheKey)
 			if (cached) {
-				const parsed = JSON.parse(cached) as {
-					window: Window
-					from: string
-					to: string
-					meanCommitsPerWeek: number
-					meanPrCycleTimeHours: number | null
-					prRejectionRate: number
-					linesAdded: number
-					linesDeleted: number
-					netLines: number
-					productivityScore: number
-					counts: {
-						commits: number
-						closedPrs: number
-						reviews: number
-					}
-				}
-
-				return MetricsAggregate.create({
-					...parsed,
-					from: new Date(parsed.from),
-					to: new Date(parsed.to),
-				})
+				return fromMetricsAggregateCache(cached)
 			}
 		}
 
@@ -105,23 +89,7 @@ export class GetMetricsForReposUseCase {
 			reviews: reviews.length,
 		})
 
-		await this.cacheRepository.set(
-			cacheKey,
-			JSON.stringify({
-				window: metrics.window,
-				from: metrics.from,
-				to: metrics.to,
-				meanCommitsPerWeek: metrics.meanCommitsPerWeek,
-				meanPrCycleTimeHours: metrics.meanPrCycleTimeHours,
-				prRejectionRate: metrics.prRejectionRate,
-				linesAdded: metrics.linesAdded,
-				linesDeleted: metrics.linesDeleted,
-				netLines: metrics.netLines,
-				productivityScore: metrics.productivityScore,
-				counts: metrics.counts,
-			}),
-			300,
-		)
+		await setCachedJson(this.cacheRepository, cacheKey, toMetricsAggregateCache(metrics), 300)
 
 		return metrics
 	}

@@ -1,5 +1,12 @@
 import { ProfileTrendBucket, ProfileTrends } from '@/domain/flowtrack/enterprise/entities/value-objects/profile-trends'
+import {
+	fromProfileTrendsCache,
+	toProfileTrendsCache,
+	type ProfileTrendsCache,
+} from '@/domain/flowtrack/application/use-cases/profile/profile-cache'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { CacheRepository } from '@/infra/cache/cache-repository'
+import { getCachedJson, setCachedJson } from '@/infra/cache/cache-json'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 
@@ -16,6 +23,7 @@ export class GetProfileTrendsUseCase {
 	constructor(
 		private prisma: PrismaService,
 		private cacheRepository: CacheRepository,
+		private repositoryAccess: RepositoryAccessService,
 	) {}
 
 	private monthKey(date: Date) {
@@ -35,30 +43,14 @@ export class GetProfileTrendsUseCase {
 
 	async execute(userId: string, options?: { refresh?: boolean }) {
 		const cacheKey = `profile:trends:${userId}`
-		const cached = options?.refresh ? null : await this.cacheRepository.get(cacheKey)
+		const cached = options?.refresh
+			? null
+			: await getCachedJson<ProfileTrendsCache>(this.cacheRepository, cacheKey)
 		if (cached) {
-			const parsed = JSON.parse(cached) as {
-				repositoryIds: string[]
-				from: string
-				to: string
-				bucket: 'month'
-				items: ProfileTrendBucket[]
-			}
-
-			return ProfileTrends.create({
-				repositoryIds: parsed.repositoryIds,
-				from: new Date(parsed.from),
-				to: new Date(parsed.to),
-				bucket: 'month',
-				items: parsed.items,
-			})
+			return fromProfileTrendsCache(cached)
 		}
 
-		const access = await this.prisma.userRepositoryAccess.findMany({
-			where: { userId },
-			select: { repositoryId: true },
-		})
-		const repositoryIds = access.map((entry) => entry.repositoryId)
+		const repositoryIds = await this.repositoryAccess.listRepositoryIds(userId)
 		const now = new Date()
 
 		if (repositoryIds.length === 0) {
@@ -70,15 +62,10 @@ export class GetProfileTrendsUseCase {
 				items: [],
 			})
 
-			await this.cacheRepository.set(
+			await setCachedJson(
+				this.cacheRepository,
 				cacheKey,
-				JSON.stringify({
-					repositoryIds: empty.repositoryIds,
-					from: empty.from,
-					to: empty.to,
-					bucket: empty.bucket,
-					items: empty.items,
-				}),
+				toProfileTrendsCache(empty),
 				PROFILE_CACHE_TTL_SECONDS,
 			)
 
@@ -129,15 +116,10 @@ export class GetProfileTrendsUseCase {
 			items,
 		})
 
-		await this.cacheRepository.set(
+		await setCachedJson(
+			this.cacheRepository,
 			cacheKey,
-			JSON.stringify({
-				repositoryIds: trends.repositoryIds,
-				from: trends.from,
-				to: trends.to,
-				bucket: trends.bucket,
-				items: trends.items,
-			}),
+			toProfileTrendsCache(trends),
 			PROFILE_CACHE_TTL_SECONDS,
 		)
 

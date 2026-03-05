@@ -1,10 +1,12 @@
 import { Either, left, right } from '@/core/either'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { RepoMetrics } from '@/domain/flowtrack/enterprise/entities/value-objects/repo-metrics'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { NotFoundError } from '../errors/not-found-error'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
+import { ensureRepository } from '../repos/repository-lookup'
 
 interface GetRepoMetricsUseCaseRequest {
 	userId: string
@@ -20,6 +22,7 @@ export class GetRepoMetricsUseCase {
 	constructor(
 		private prisma: PrismaService,
 		private metrics: GetMetricsForReposUseCase,
+		private repositoryAccess: RepositoryAccessService,
 	) {}
 
 	async execute({
@@ -28,26 +31,16 @@ export class GetRepoMetricsUseCase {
 		window,
 		refresh,
 	}: GetRepoMetricsUseCaseRequest): Promise<GetRepoMetricsUseCaseResponse> {
-		const access = await this.prisma.userRepositoryAccess.findUnique({
-			where: {
-				userId_repositoryId: {
-					userId,
-					repositoryId: repoId,
-				},
-			},
-		})
-
-		if (!access) {
+		const hasAccess = await this.repositoryAccess.hasAccess(userId, repoId)
+		if (!hasAccess) {
 			return left(new NotAllowedError())
 		}
 
-		const repository = await this.prisma.repository.findUnique({
-			where: { id: repoId },
-		})
-
-		if (!repository) {
-			return left(new NotFoundError(repoId, 'Repository'))
+		const repositoryResult = await ensureRepository(this.prisma, repoId)
+		if (repositoryResult.isLeft()) {
+			return left(repositoryResult.value)
 		}
+		const repository = repositoryResult.value
 
 		const metrics = await this.metrics.execute([repository.id], window, { refresh })
 

@@ -1,6 +1,7 @@
 import { RegisterUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/register-user'
 import { UserAlreadyExistsError } from '@/domain/flowtrack/application/use-cases/errors/user-already-exists-error'
 import { Public } from '@/infra/auth/public'
+import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import {
 	BadRequestException,
@@ -39,14 +40,11 @@ export class CreateAccountController {
 		})
 
 		if (result.isLeft()) {
-			const error = result.value
-
-			switch (error.constructor) {
-				case UserAlreadyExistsError:
-					throw new ConflictException(error.message)
-				default:
-					throw new BadRequestException(error.message)
-			}
+			throwUseCaseError(
+				result.value,
+				[[UserAlreadyExistsError, (error) => new ConflictException(error.message)]],
+				(error) => new BadRequestException(error.message),
+			)
 		}
 	}
 }

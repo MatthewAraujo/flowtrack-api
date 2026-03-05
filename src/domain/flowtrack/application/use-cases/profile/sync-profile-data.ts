@@ -90,7 +90,6 @@ export class SyncProfileDataUseCase {
 				},
 				select: { lastProviderUpdatedAt: true, lastSyncedAt: true },
 			})
-			const previousUpdatedAt = existing?.lastProviderUpdatedAt ?? null
 			const lastSyncedAt = existing?.lastSyncedAt ?? null
 			const shouldSync = !lastSyncedAt || providerUpdatedAt.getTime() > lastSyncedAt.getTime()
 

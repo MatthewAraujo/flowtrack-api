@@ -1,7 +1,7 @@
 import { Either, left, right } from '@/core/either'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { DashboardSummary } from '@/domain/flowtrack/enterprise/entities/value-objects/dashboard-summary'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
 
@@ -17,8 +17,8 @@ type GetDashboardSummaryUseCaseResponse = Either<NotAllowedError, DashboardSumma
 @Injectable()
 export class GetDashboardSummaryUseCase {
 	constructor(
-		private prisma: PrismaService,
 		private metrics: GetMetricsForReposUseCase,
+		private repositoryAccess: RepositoryAccessService,
 	) {}
 
 	async execute({
@@ -27,15 +27,7 @@ export class GetDashboardSummaryUseCase {
 		window,
 		refresh,
 	}: GetDashboardSummaryUseCaseRequest): Promise<GetDashboardSummaryUseCaseResponse> {
-		const access = await this.prisma.userRepositoryAccess.findMany({
-			where: {
-				userId,
-				repositoryId: { in: repositoryIds },
-			},
-			select: { repositoryId: true },
-		})
-
-		const accessIds = new Set(access.map((entry) => entry.repositoryId))
+		const accessIds = await this.repositoryAccess.filterAccessible(userId, repositoryIds)
 		const missing = repositoryIds.filter((id) => !accessIds.has(id))
 
 		if (missing.length > 0) {

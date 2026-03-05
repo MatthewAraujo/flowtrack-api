@@ -4,7 +4,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 describe('GithubCallbackController', () => {
 	let envService: { get: ReturnType<typeof vi.fn> }
 	let githubCallback: { execute: ReturnType<typeof vi.fn> }
-	let listRepos: { execute: ReturnType<typeof vi.fn> }
 	let sut: GithubCallbackController
 
 	beforeEach(() => {
@@ -19,9 +18,8 @@ describe('GithubCallbackController', () => {
 				},
 			}),
 		}
-		listRepos = { execute: vi.fn().mockResolvedValue({ items: [] }) }
 
-		sut = new GithubCallbackController(envService as any, githubCallback as any, listRepos as any)
+		sut = new GithubCallbackController(envService as any, githubCallback as any)
 	})
 
 	it('returns UI redirect with access token', async () => {

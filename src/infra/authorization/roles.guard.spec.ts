@@ -20,7 +20,7 @@ function makeContext(role?: Role, requiredRoles?: Role[]): ExecutionContext {
 				user: role ? { role } : undefined,
 			}),
 		}),
-	} as ExecutionContext
+	} as unknown as ExecutionContext
 }
 
 describe('RolesGuard', () => {

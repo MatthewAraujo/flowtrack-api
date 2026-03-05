@@ -1,6 +1,13 @@
 import { calculateMetrics } from '@/domain/flowtrack/application/use-cases/metrics/metrics-calculator'
+import {
+	fromProfileSummaryCache,
+	toProfileSummaryCache,
+	type ProfileSummaryCache,
+} from '@/domain/flowtrack/application/use-cases/profile/profile-cache'
 import { ProfileSummary } from '@/domain/flowtrack/enterprise/entities/value-objects/profile-summary'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { CacheRepository } from '@/infra/cache/cache-repository'
+import { getCachedJson, setCachedJson } from '@/infra/cache/cache-json'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 
@@ -11,6 +18,7 @@ export class GetProfileSummaryUseCase {
 	constructor(
 		private prisma: PrismaService,
 		private cacheRepository: CacheRepository,
+		private repositoryAccess: RepositoryAccessService,
 	) {}
 
 	private roundToMinute(date: Date) {
@@ -28,49 +36,14 @@ export class GetProfileSummaryUseCase {
 
 	async execute(userId: string, options?: { refresh?: boolean }) {
 		const cacheKey = `profile:summary:${userId}`
-		const cached = options?.refresh ? null : await this.cacheRepository.get(cacheKey)
+		const cached = options?.refresh
+			? null
+			: await getCachedJson<ProfileSummaryCache>(this.cacheRepository, cacheKey)
 		if (cached) {
-			const parsed = JSON.parse(cached) as {
-				repositoryIds: string[]
-				window: 'all'
-				from: string
-				to: string
-				meanCommitsPerWeek: number
-				meanPrCycleTimeHours: number | null
-				prRejectionRate: number
-				linesAdded: number
-				linesDeleted: number
-				netLines: number
-				productivityScore: number
-				counts: {
-					commits: number
-					closedPrs: number
-					reviews: number
-				}
-			}
-
-			return ProfileSummary.create({
-				repositoryIds: parsed.repositoryIds,
-				window: 'all',
-				from: new Date(parsed.from),
-				to: new Date(parsed.to),
-				meanCommitsPerWeek: parsed.meanCommitsPerWeek,
-				meanPrCycleTimeHours: parsed.meanPrCycleTimeHours,
-				prRejectionRate: parsed.prRejectionRate,
-				linesAdded: parsed.linesAdded,
-				linesDeleted: parsed.linesDeleted,
-				netLines: parsed.netLines,
-				productivityScore: parsed.productivityScore,
-				counts: parsed.counts,
-			})
+			return fromProfileSummaryCache(cached)
 		}
 
-		const access = await this.prisma.userRepositoryAccess.findMany({
-			where: { userId },
-			select: { repositoryId: true },
-		})
-
-		const repositoryIds = access.map((entry) => entry.repositoryId)
+		const repositoryIds = await this.repositoryAccess.listRepositoryIds(userId)
 		const now = this.roundToMinute(new Date())
 
 		if (repositoryIds.length === 0) {
@@ -93,22 +66,10 @@ export class GetProfileSummaryUseCase {
 				},
 			})
 
-			await this.cacheRepository.set(
+			await setCachedJson(
+				this.cacheRepository,
 				cacheKey,
-				JSON.stringify({
-					repositoryIds: empty.repositoryIds,
-					window: empty.window,
-					from: empty.from,
-					to: empty.to,
-					meanCommitsPerWeek: empty.meanCommitsPerWeek,
-					meanPrCycleTimeHours: empty.meanPrCycleTimeHours,
-					prRejectionRate: empty.prRejectionRate,
-					linesAdded: empty.linesAdded,
-					linesDeleted: empty.linesDeleted,
-					netLines: empty.netLines,
-					productivityScore: empty.productivityScore,
-					counts: empty.counts,
-				}),
+				toProfileSummaryCache(empty),
 				PROFILE_CACHE_TTL_SECONDS,
 			)
 
@@ -179,22 +140,10 @@ export class GetProfileSummaryUseCase {
 			counts: calculated.counts,
 		})
 
-		await this.cacheRepository.set(
+		await setCachedJson(
+			this.cacheRepository,
 			cacheKey,
-			JSON.stringify({
-				repositoryIds: summary.repositoryIds,
-				window: summary.window,
-				from: summary.from,
-				to: summary.to,
-				meanCommitsPerWeek: summary.meanCommitsPerWeek,
-				meanPrCycleTimeHours: summary.meanPrCycleTimeHours,
-				prRejectionRate: summary.prRejectionRate,
-				linesAdded: summary.linesAdded,
-				linesDeleted: summary.linesDeleted,
-				netLines: summary.netLines,
-				productivityScore: summary.productivityScore,
-				counts: summary.counts,
-			}),
+			toProfileSummaryCache(summary),
 			PROFILE_CACHE_TTL_SECONDS,
 		)
 

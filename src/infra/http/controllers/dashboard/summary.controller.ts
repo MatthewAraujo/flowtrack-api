@@ -2,6 +2,7 @@ import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
+import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { DashboardSummaryPresenter } from '@/infra/http/presenters/dashboard-summary.presenter'
 import { BadRequestException, Controller, ForbiddenException, Get, Query } from '@nestjs/common'
@@ -41,13 +42,11 @@ export class DashboardSummaryController {
 		})
 
 		if (result.isLeft()) {
-			const error = result.value
-			switch (error.constructor) {
-				case NotAllowedError:
-					throw new ForbiddenException('Forbidden')
-				default:
-					throw new BadRequestException(error.message)
-			}
+			throwUseCaseError(
+				result.value,
+				[[NotAllowedError, () => new ForbiddenException('Forbidden')]],
+				(error) => new BadRequestException(error.message),
+			)
 		}
 
 		return DashboardSummaryPresenter.toHTTP(result.value)

@@ -1,6 +1,7 @@
 import { AuthenticateUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/authenticate-user'
 import { WrongCredentialsError } from '@/domain/flowtrack/application/use-cases/errors/wrong-credentials-error'
 import { Public } from '@/infra/auth/public'
+import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import {
 	BadRequestException,
@@ -35,14 +36,11 @@ export class AuthenticateController {
 		})
 
 		if (result.isLeft()) {
-			const error = result.value
-
-			switch (error.constructor) {
-				case WrongCredentialsError:
-					throw new UnauthorizedException(error.message)
-				default:
-					throw new BadRequestException(error.message)
-			}
+			throwUseCaseError(
+				result.value,
+				[[WrongCredentialsError, (error) => new UnauthorizedException(error.message)]],
+				(error) => new BadRequestException(error.message),
+			)
 		}
 
 		const { accessToken } = result.value

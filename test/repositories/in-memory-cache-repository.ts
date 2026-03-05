@@ -6,7 +6,7 @@ export class InMemoryCacheRepository implements CacheRepository {
 		delete this.items[key]
 	}
 
-	async set(key: string, value: string, ttl?: number): Promise<void> {
+	async set(key: string, value: string, _ttl?: number): Promise<void> {
 		this.items[key] = value
 	}
 

@@ -3,51 +3,41 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoPullsUseCase', () => {
 	let prisma: any
-	let tokenCipher: { decrypt: ReturnType<typeof vi.fn> }
-	let ingestion: {
-		execute: ReturnType<typeof vi.fn>
-		listPullRequestEvents: ReturnType<typeof vi.fn>
-	}
+	let repositoryAccess: { hasAccess: ReturnType<typeof vi.fn> }
 	let sut: GetRepoPullsUseCase
 
 	beforeEach(() => {
 		prisma = {
-			userRepositoryAccess: { findUnique: vi.fn() },
 			repository: { findUnique: vi.fn() },
-			gitHubAccount: { findFirst: vi.fn() },
+			pullRequestEvent: { findMany: vi.fn() },
 		}
-		tokenCipher = { decrypt: vi.fn().mockResolvedValue('token') }
-		ingestion = {
-			execute: vi.fn(),
-			listPullRequestEvents: vi.fn().mockResolvedValue([
-				{
-					id: 'p1',
-					number: 1,
-					title: 'Add feature',
-					state: 'closed',
-					isMerged: true,
-					authorLogin: null,
-					createdAt: new Date(),
-					closedAt: new Date(),
-					mergedAt: new Date(),
-					additions: 1,
-					deletions: 1,
-					changedFiles: 1,
-				},
-			]),
-		}
+		repositoryAccess = { hasAccess: vi.fn().mockResolvedValue(true) }
 
-		sut = new GetRepoPullsUseCase(prisma, tokenCipher as any, ingestion as any)
+		sut = new GetRepoPullsUseCase(prisma, repositoryAccess as any)
 	})
 
 	it('returns pulls when access granted', async () => {
-		prisma.userRepositoryAccess.findUnique.mockResolvedValue({ id: 'access-1' })
 		prisma.repository.findUnique.mockResolvedValue({
 			id: 'repo-1',
 			ownerLogin: 'acme',
 			name: 'flowtrack',
 		})
-		prisma.gitHubAccount.findFirst.mockResolvedValue({ accessToken: 'encrypted' })
+		prisma.pullRequestEvent.findMany.mockResolvedValue([
+			{
+				id: 'p1',
+				number: 1,
+				title: 'Add feature',
+				state: 'closed',
+				isMerged: true,
+				authorLogin: null,
+				createdAt: new Date('2026-03-01T12:00:00.000Z'),
+				closedAt: new Date('2026-03-02T12:00:00.000Z'),
+				mergedAt: new Date('2026-03-02T14:00:00.000Z'),
+				additions: 1,
+				deletions: 1,
+				changedFiles: 1,
+			},
+		])
 
 		const result = await sut.execute({
 			userId: 'user-1',
@@ -57,6 +47,9 @@ describe('GetRepoPullsUseCase', () => {
 		})
 
 		expect(result.isRight()).toBe(true)
-		expect(result.value.items).toHaveLength(1)
+		if (result.isRight()) {
+			expect(result.value.items).toHaveLength(1)
+			expect(result.value.items[0].number).toBe(1)
+		}
 	})
 })

@@ -48,7 +48,7 @@ async function bootstrap() {
 	// Configure JSON parser to preserve raw body for webhook signature verification
 	app.use(
 		json({
-			verify: (req: any, res, buf) => {
+			verify: (req: any, _res, buf) => {
 				req.rawBody = buf
 			},
 		}),

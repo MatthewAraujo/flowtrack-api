@@ -1,10 +1,12 @@
 import { Either, left, right } from '@/core/either'
-import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { PullRequestEvent } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { NotFoundError } from '../errors/not-found-error'
+import { toPullRequestEvent } from './repo-event-mappers'
+import { ensureRepository } from './repository-lookup'
 
 interface GetRepoPullsUseCaseRequest {
 	userId: string
@@ -22,7 +24,10 @@ type GetRepoPullsUseCaseResponse = Either<
 
 @Injectable()
 export class GetRepoPullsUseCase {
-	constructor(private prisma: PrismaService) {}
+	constructor(
+		private prisma: PrismaService,
+		private repositoryAccess: RepositoryAccessService,
+	) {}
 
 	async execute({
 		userId,
@@ -30,26 +35,16 @@ export class GetRepoPullsUseCase {
 		from,
 		to,
 	}: GetRepoPullsUseCaseRequest): Promise<GetRepoPullsUseCaseResponse> {
-		const access = await this.prisma.userRepositoryAccess.findUnique({
-			where: {
-				userId_repositoryId: {
-					userId,
-					repositoryId: repoId,
-				},
-			},
-		})
-
-		if (!access) {
+		const hasAccess = await this.repositoryAccess.hasAccess(userId, repoId)
+		if (!hasAccess) {
 			return left(new NotAllowedError())
 		}
 
-		const repository = await this.prisma.repository.findUnique({
-			where: { id: repoId },
-		})
-
-		if (!repository) {
-			return left(new NotFoundError(repoId, 'Repository'))
+		const repositoryResult = await ensureRepository(this.prisma, repoId)
+		if (repositoryResult.isLeft()) {
+			return left(repositoryResult.value)
 		}
+		const repository = repositoryResult.value
 
 		const pulls = await this.prisma.pullRequestEvent.findMany({
 			where: {
@@ -81,24 +76,7 @@ export class GetRepoPullsUseCase {
 		})
 
 		return right({
-			items: pulls.map((pull) =>
-				PullRequestEvent.create(
-					{
-						number: pull.number,
-						title: pull.title,
-						state: pull.state,
-						isMerged: pull.isMerged,
-						authorLogin: pull.authorLogin,
-						createdAt: pull.createdAt,
-						closedAt: pull.closedAt,
-						mergedAt: pull.mergedAt,
-						additions: pull.additions,
-						deletions: pull.deletions,
-						changedFiles: pull.changedFiles,
-					},
-					new UniqueEntityID(pull.id),
-				),
-			),
+			items: pulls.map(toPullRequestEvent),
 		})
 	}
 }

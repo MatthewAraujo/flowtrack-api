@@ -3,8 +3,10 @@ import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/n
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
+import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { RepoCommitsPresenter } from '@/infra/http/presenters/repo-commits.presenter'
+import { parseDateRange } from '@/infra/http/utils/date-range'
 import {
 	BadRequestException,
 	Controller,
@@ -37,11 +39,7 @@ export class RepoCommitsController {
 		@Query(new ZodValidationPipe(querySchema))
 		query: { from: string; to: string; refresh?: string },
 	) {
-		const from = new Date(query.from)
-		const to = new Date(query.to)
-		if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-			throw new BadRequestException('Invalid date range')
-		}
+		const { from, to } = parseDateRange(query)
 
 		const result = await this.getRepoCommits.execute({
 			userId: user.sub,
@@ -51,15 +49,14 @@ export class RepoCommitsController {
 		})
 
 		if (result.isLeft()) {
-			const error = result.value
-			switch (error.constructor) {
-				case NotAllowedError:
-					throw new ForbiddenException('Forbidden')
-				case NotFoundError:
-					throw new NotFoundException(error.message)
-				default:
-					throw new BadRequestException(error.message)
-			}
+			throwUseCaseError(
+				result.value,
+				[
+					[NotAllowedError, () => new ForbiddenException('Forbidden')],
+					[NotFoundError, (error) => new NotFoundException(error.message)],
+				],
+				(error) => new BadRequestException(error.message),
+			)
 		}
 
 		return {

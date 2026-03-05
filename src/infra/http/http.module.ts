@@ -13,6 +13,7 @@ import { SyncProfileDataUseCase } from '@/domain/flowtrack/application/use-cases
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
 import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
 import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
+import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
 import { CacheModule } from '../cache/cache.module'
 import { CryptographyModule } from '../cryptography/cryptography.module'
@@ -74,6 +75,7 @@ import { ListReposController } from './controllers/repos/list-repos.controller'
 		GetProfileSummaryUseCase,
 		GetProfileTrendsUseCase,
 		SyncProfileDataUseCase,
+		RepositoryAccessService,
 		GithubOAuthService,
 	],
 })

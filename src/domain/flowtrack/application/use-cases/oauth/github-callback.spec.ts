@@ -15,6 +15,7 @@ describe('GithubCallbackUseCase', () => {
 	let tokenCipher: { encrypt: ReturnType<typeof vi.fn> }
 	let hashGenerator: { hash: ReturnType<typeof vi.fn> }
 	let prisma: { gitHubAccount: { upsert: ReturnType<typeof vi.fn> } }
+	let syncProfileData: { execute: ReturnType<typeof vi.fn> }
 	let sut: GithubCallbackUseCase
 
 	beforeEach(() => {
@@ -35,6 +36,7 @@ describe('GithubCallbackUseCase', () => {
 		tokenCipher = { encrypt: vi.fn().mockResolvedValue('encrypted-token') }
 		hashGenerator = { hash: vi.fn().mockResolvedValue('hashed') }
 		prisma = { gitHubAccount: { upsert: vi.fn() } }
+		syncProfileData = { execute: vi.fn().mockResolvedValue({ status: 'synced' }) }
 
 		sut = new GithubCallbackUseCase(
 			githubOAuthService as any,
@@ -43,6 +45,7 @@ describe('GithubCallbackUseCase', () => {
 			tokenCipher as any,
 			hashGenerator as any,
 			prisma as any,
+			syncProfileData as any,
 		)
 	})
 
@@ -52,6 +55,8 @@ describe('GithubCallbackUseCase', () => {
 		expect(result.isRight()).toBe(true)
 		expect(usersRepository.create).toHaveBeenCalledTimes(1)
 		expect(prisma.gitHubAccount.upsert).toHaveBeenCalledTimes(1)
-		expect(result.value.accessToken).toBe('jwt-token')
+		if (result.isRight()) {
+			expect(result.value.accessToken).toBe('jwt-token')
+		}
 	})
 })

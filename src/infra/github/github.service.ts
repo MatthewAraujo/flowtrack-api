@@ -300,7 +300,7 @@ export class GitHubService {
 		options: { cacheKey?: string; ttlSeconds?: number } = {},
 		attempt = 0,
 	): Promise<T> {
-		const cached = options.cacheKey ? await this.cacheRepository.get<T>(options.cacheKey) : null
+		const cached = options.cacheKey ? await this.cacheRepository.get(options.cacheKey) : null
 
 		try {
 			const response = await fetch(url, {

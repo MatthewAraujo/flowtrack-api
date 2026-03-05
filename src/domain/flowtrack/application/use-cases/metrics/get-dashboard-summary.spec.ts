@@ -3,14 +3,11 @@ import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetDashboardSummaryUseCase', () => {
-	let prisma: any
 	let metrics: { execute: ReturnType<typeof vi.fn> }
+	let repositoryAccess: { filterAccessible: ReturnType<typeof vi.fn> }
 	let sut: GetDashboardSummaryUseCase
 
 	beforeEach(() => {
-		prisma = {
-			userRepositoryAccess: { findMany: vi.fn() },
-		}
 		metrics = {
 			execute: vi.fn().mockResolvedValue(
 				makeMetricsAggregate({
@@ -26,15 +23,13 @@ describe('GetDashboardSummaryUseCase', () => {
 				}),
 			),
 		}
+		repositoryAccess = { filterAccessible: vi.fn() }
 
-		sut = new GetDashboardSummaryUseCase(prisma, metrics as any)
+		sut = new GetDashboardSummaryUseCase(metrics as any, repositoryAccess as any)
 	})
 
 	it('returns dashboard summary for repos', async () => {
-		prisma.userRepositoryAccess.findMany.mockResolvedValue([
-			{ repositoryId: 'repo-1' },
-			{ repositoryId: 'repo-2' },
-		])
+		repositoryAccess.filterAccessible.mockResolvedValue(new Set(['repo-1', 'repo-2']))
 
 		const result = await sut.execute({
 			userId: 'user-1',
@@ -43,6 +38,8 @@ describe('GetDashboardSummaryUseCase', () => {
 		})
 
 		expect(result.isRight()).toBe(true)
-		expect(result.value.repositoryIds).toEqual(['repo-1', 'repo-2'])
+		if (result.isRight()) {
+			expect(result.value.repositoryIds).toEqual(['repo-1', 'repo-2'])
+		}
 	})
 })

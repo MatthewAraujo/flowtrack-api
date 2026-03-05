@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ListReposController } from '@/infra/http/controllers/repos/list-repos.controller'
 import { makeRepository } from 'test/factories/make-repository'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('ListReposController', () => {
 	let listRepos: { execute: ReturnType<typeof vi.fn> }

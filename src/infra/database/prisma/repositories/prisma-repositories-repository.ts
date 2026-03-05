@@ -1,8 +1,8 @@
-import { Injectable } from '@nestjs/common'
 import { RepositoriesRepository } from '@/domain/flowtrack/application/repositories/repositories-repository'
 import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
-import { PrismaService } from '../prisma.service'
+import { Injectable } from '@nestjs/common'
 import { PrismaRepositoryMapper } from '../mappers/prisma-repository-mapper'
+import { PrismaService } from '../prisma.service'
 
 @Injectable()
 export class PrismaRepositoriesRepository implements RepositoriesRepository {

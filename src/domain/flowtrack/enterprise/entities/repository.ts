@@ -47,6 +47,14 @@ export class Repository extends Entity<RepositoryProps> {
 		this.props.updatedAt = new Date()
 	}
 
+	get createdAt() {
+		return this.props.createdAt ?? new Date()
+	}
+
+	get updatedAt() {
+		return this.props.updatedAt ?? new Date()
+	}
+
 	static create(props: RepositoryProps, id?: UniqueEntityID) {
 		const repo = new Repository(
 			{

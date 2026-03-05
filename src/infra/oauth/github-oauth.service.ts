@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common'
 import { EnvService } from '@/infra/env/env.service'
+import { Injectable } from '@nestjs/common'
 
 type GitHubTokenResponse = {
 	access_token: string

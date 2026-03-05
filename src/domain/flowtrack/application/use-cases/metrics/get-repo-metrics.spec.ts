@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
 import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoMetricsUseCase', () => {
 	let prisma: any
@@ -37,17 +37,16 @@ describe('GetRepoMetricsUseCase', () => {
 			),
 		}
 
-		sut = new GetRepoMetricsUseCase(
-			prisma,
-			tokenCipher as any,
-			ingestion as any,
-			metrics as any,
-		)
+		sut = new GetRepoMetricsUseCase(prisma, tokenCipher as any, ingestion as any, metrics as any)
 	})
 
 	it('returns metrics for repo', async () => {
 		prisma.userRepositoryAccess.findUnique.mockResolvedValue({ id: 'access-1' })
-		prisma.repository.findUnique.mockResolvedValue({ id: 'repo-1', ownerLogin: 'acme', name: 'flowtrack' })
+		prisma.repository.findUnique.mockResolvedValue({
+			id: 'repo-1',
+			ownerLogin: 'acme',
+			name: 'flowtrack',
+		})
 		prisma.gitHubAccount.findFirst.mockResolvedValue({ accessToken: 'encrypted' })
 
 		const result = await sut.execute({

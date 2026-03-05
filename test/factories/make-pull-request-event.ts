@@ -1,9 +1,9 @@
-import { faker } from '@faker-js/faker'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import {
 	PullRequestEvent,
 	PullRequestEventProps,
 } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
+import { faker } from '@faker-js/faker'
 
 export function makePullRequestEvent(
 	override: Partial<PullRequestEventProps> = {},

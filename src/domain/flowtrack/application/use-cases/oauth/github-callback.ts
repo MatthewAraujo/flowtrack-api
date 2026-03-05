@@ -1,14 +1,14 @@
 import { Either, left, right } from '@/core/either'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { User } from '@/domain/flowtrack/enterprise/entities/user'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
 import { Injectable } from '@nestjs/common'
 import { Encrypter } from '../../cryptography/encrypter'
 import { HashGenerator } from '../../cryptography/hash-generator'
 import { TokenCipher } from '../../cryptography/token-cipher'
 import { UsersRepository } from '../../repositories/users-repository'
-import { GithubOAuthService } from '@/infra/oauth/github-oauth.service'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
 interface GithubCallbackUseCaseRequest {
 	code: string
@@ -34,9 +34,7 @@ export class GithubCallbackUseCase {
 		private prisma: PrismaService,
 	) {}
 
-	async execute({
-		code,
-	}: GithubCallbackUseCaseRequest): Promise<GithubCallbackUseCaseResponse> {
+	async execute({ code }: GithubCallbackUseCaseRequest): Promise<GithubCallbackUseCaseResponse> {
 		const token = await this.githubOAuthService.exchangeCodeForToken(code)
 		const encryptedToken = await this.tokenCipher.encrypt(token)
 		const profile = await this.githubOAuthService.getProfile(token)

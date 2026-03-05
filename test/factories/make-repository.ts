@@ -1,11 +1,8 @@
-import { faker } from '@faker-js/faker'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { Repository, RepositoryProps } from '@/domain/flowtrack/enterprise/entities/repository'
+import { faker } from '@faker-js/faker'
 
-export function makeRepository(
-	override: Partial<RepositoryProps> = {},
-	id?: UniqueEntityID,
-) {
+export function makeRepository(override: Partial<RepositoryProps> = {}, id?: UniqueEntityID) {
 	const repo = Repository.create(
 		{
 			provider: 'github',

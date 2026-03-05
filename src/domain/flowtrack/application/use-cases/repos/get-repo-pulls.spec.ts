@@ -1,10 +1,13 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoPullsUseCase', () => {
 	let prisma: any
 	let tokenCipher: { decrypt: ReturnType<typeof vi.fn> }
-	let ingestion: { execute: ReturnType<typeof vi.fn>; listPullRequestEvents: ReturnType<typeof vi.fn> }
+	let ingestion: {
+		execute: ReturnType<typeof vi.fn>
+		listPullRequestEvents: ReturnType<typeof vi.fn>
+	}
 	let sut: GetRepoPullsUseCase
 
 	beforeEach(() => {
@@ -39,7 +42,11 @@ describe('GetRepoPullsUseCase', () => {
 
 	it('returns pulls when access granted', async () => {
 		prisma.userRepositoryAccess.findUnique.mockResolvedValue({ id: 'access-1' })
-		prisma.repository.findUnique.mockResolvedValue({ id: 'repo-1', ownerLogin: 'acme', name: 'flowtrack' })
+		prisma.repository.findUnique.mockResolvedValue({
+			id: 'repo-1',
+			ownerLogin: 'acme',
+			name: 'flowtrack',
+		})
 		prisma.gitHubAccount.findFirst.mockResolvedValue({ accessToken: 'encrypted' })
 
 		const result = await sut.execute({

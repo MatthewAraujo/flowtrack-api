@@ -5,9 +5,7 @@ import { EnvModule } from '../env/env.module'
 
 @Module({
 	imports: [EnvModule],
-	providers: [
-
-	],
+	providers: [],
 	exports: [],
 })
-export class StorageModule { }
+export class StorageModule {}

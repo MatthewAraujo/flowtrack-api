@@ -1,9 +1,9 @@
-import { Injectable } from '@nestjs/common'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
-import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { DashboardSummary } from '@/domain/flowtrack/enterprise/entities/value-objects/dashboard-summary'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
 
 interface GetDashboardSummaryUseCaseRequest {
 	userId: string
@@ -12,10 +12,7 @@ interface GetDashboardSummaryUseCaseRequest {
 	refresh?: boolean
 }
 
-type GetDashboardSummaryUseCaseResponse = Either<
-	NotAllowedError,
-	DashboardSummary
->
+type GetDashboardSummaryUseCaseResponse = Either<NotAllowedError, DashboardSummary>
 
 @Injectable()
 export class GetDashboardSummaryUseCase {

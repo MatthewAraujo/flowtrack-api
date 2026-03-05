@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common'
-import { GitHubService } from '@/infra/github/github.service'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { GitHubService } from '@/infra/github/github.service'
+import { Injectable } from '@nestjs/common'
 
 type IngestionParams = {
 	token: string

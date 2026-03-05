@@ -1,11 +1,11 @@
-import { Injectable } from '@nestjs/common'
-import { UsersRepository } from '../../repositories/users-repository'
-import { GitHubService } from '@/infra/github/github.service'
-import { RepositoriesRepository } from '../../repositories/repositories-repository'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { UniqueEntityID } from '@/core/entities/unique-entity-id'
+import { GitHubService } from '@/infra/github/github.service'
+import { Injectable } from '@nestjs/common'
 import { TokenCipher } from '../../cryptography/token-cipher'
+import { RepositoriesRepository } from '../../repositories/repositories-repository'
+import { UsersRepository } from '../../repositories/users-repository'
 
 interface ListReposUseCaseRequest {
 	userId: string
@@ -72,9 +72,7 @@ export class ListReposUseCase {
 		)
 
 		const filtered = query
-			? storedRepos.filter((repo) =>
-					repo.fullName.toLowerCase().includes(query.toLowerCase()),
-			  )
+			? storedRepos.filter((repo) => repo.fullName.toLowerCase().includes(query.toLowerCase()))
 			: storedRepos
 
 		return {

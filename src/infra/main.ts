@@ -1,8 +1,8 @@
+import { ConsoleLogger } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
+import { json } from 'express'
 import { AppModule } from './app.module'
 import { EnvService } from './env/env.service'
-import { ConsoleLogger } from '@nestjs/common'
-import { json } from 'express'
 import { HttpExceptionFilter } from './http/filters/http-exception.filter'
 
 async function bootstrap() {

@@ -1,7 +1,6 @@
 import { CacheRepository } from '@/infra/cache/cache-repository'
 
 export class InMemoryCacheRepository implements CacheRepository {
-
 	public items: Record<string, string> = {}
 	async delete(key: string): Promise<void> {
 		delete this.items[key]

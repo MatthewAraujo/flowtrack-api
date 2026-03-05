@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RepoCommitsController } from '@/infra/http/controllers/metrics/repo-commits.controller'
 import { makeCommitEvent } from 'test/factories/make-commit-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('RepoCommitsController', () => {
 	let getRepoCommits: { execute: ReturnType<typeof vi.fn> }

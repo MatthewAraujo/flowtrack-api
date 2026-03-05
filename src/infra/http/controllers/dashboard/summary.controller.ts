@@ -1,17 +1,11 @@
-import {
-	BadRequestException,
-	Controller,
-	ForbiddenException,
-	Get,
-	Query,
-} from '@nestjs/common'
-import { z } from 'zod'
-import { CurrentUser } from '@/infra/auth/current-user-decorator'
-import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
-import { Roles } from '@/infra/authorization/roles'
-import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
+import { CurrentUser } from '@/infra/auth/current-user-decorator'
+import { Roles } from '@/infra/authorization/roles'
+import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { DashboardSummaryPresenter } from '@/infra/http/presenters/dashboard-summary.presenter'
+import { BadRequestException, Controller, ForbiddenException, Get, Query } from '@nestjs/common'
+import { z } from 'zod'
 
 const querySchema = z.object({
 	repoIds: z.string().min(1),
@@ -30,7 +24,10 @@ export class DashboardSummaryController {
 		@Query(new ZodValidationPipe(querySchema))
 		query: { repoIds: string; window: '7d' | '30d' | '90d'; refresh?: string },
 	) {
-		const repoIds = query.repoIds.split(',').map((id) => id.trim()).filter(Boolean)
+		const repoIds = query.repoIds
+			.split(',')
+			.map((id) => id.trim())
+			.filter(Boolean)
 
 		if (repoIds.length === 0) {
 			throw new BadRequestException('repoIds is required')

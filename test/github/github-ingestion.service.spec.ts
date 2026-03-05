@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { IngestRepositoryActivityUseCase } from '@/domain/flowtrack/application/use-cases/github/ingest-repository-activity'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('IngestRepositoryActivityUseCase', () => {
 	let githubService: {

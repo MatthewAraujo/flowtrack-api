@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GithubCallbackController } from '@/infra/http/controllers/auth/github-callback.controller'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GithubCallbackController', () => {
 	let envService: { get: ReturnType<typeof vi.fn> }

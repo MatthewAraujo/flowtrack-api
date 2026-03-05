@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GithubCallbackUseCase', () => {
 	let githubOAuthService: {

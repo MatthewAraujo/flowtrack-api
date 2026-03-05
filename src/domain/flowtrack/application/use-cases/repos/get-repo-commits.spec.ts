@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoCommitsUseCase', () => {
 	let prisma: any
@@ -16,7 +16,16 @@ describe('GetRepoCommitsUseCase', () => {
 		tokenCipher = { decrypt: vi.fn().mockResolvedValue('token') }
 		ingestion = {
 			execute: vi.fn(),
-			listCommitEvents: vi.fn().mockResolvedValue([{ id: 'c1', sha: 'abc', authorLogin: null, authorEmail: null, message: null, committedAt: new Date() }]),
+			listCommitEvents: vi.fn().mockResolvedValue([
+				{
+					id: 'c1',
+					sha: 'abc',
+					authorLogin: null,
+					authorEmail: null,
+					message: null,
+					committedAt: new Date(),
+				},
+			]),
 		}
 
 		sut = new GetRepoCommitsUseCase(prisma, tokenCipher as any, ingestion as any)
@@ -24,7 +33,11 @@ describe('GetRepoCommitsUseCase', () => {
 
 	it('returns commits when access granted', async () => {
 		prisma.userRepositoryAccess.findUnique.mockResolvedValue({ id: 'access-1' })
-		prisma.repository.findUnique.mockResolvedValue({ id: 'repo-1', ownerLogin: 'acme', name: 'flowtrack' })
+		prisma.repository.findUnique.mockResolvedValue({
+			id: 'repo-1',
+			ownerLogin: 'acme',
+			name: 'flowtrack',
+		})
 		prisma.gitHubAccount.findFirst.mockResolvedValue({ accessToken: 'encrypted' })
 
 		const result = await sut.execute({

@@ -1,6 +1,6 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
 import { InMemoryCacheRepository } from 'test/repositories/in-memory-cache-repository'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetMetricsForReposUseCase', () => {
 	let prisma: any

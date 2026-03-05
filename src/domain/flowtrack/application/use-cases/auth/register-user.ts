@@ -23,7 +23,7 @@ export class RegisterUserUseCase {
 	constructor(
 		private usersRepository: UsersRepository,
 		private hashGenerator: HashGenerator,
-	) { }
+	) {}
 
 	async execute({
 		name,

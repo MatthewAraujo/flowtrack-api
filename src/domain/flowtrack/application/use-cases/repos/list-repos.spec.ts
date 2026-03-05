@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
 import { Repository } from '@/domain/flowtrack/enterprise/entities/repository'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('ListReposUseCase', () => {
 	let usersRepository: { findById: ReturnType<typeof vi.fn> }
@@ -10,7 +10,10 @@ describe('ListReposUseCase', () => {
 		create: ReturnType<typeof vi.fn>
 		save: ReturnType<typeof vi.fn>
 	}
-	let prisma: { gitHubAccount: { findFirst: ReturnType<typeof vi.fn> }; userRepositoryAccess: { upsert: ReturnType<typeof vi.fn> } }
+	let prisma: {
+		gitHubAccount: { findFirst: ReturnType<typeof vi.fn> }
+		userRepositoryAccess: { upsert: ReturnType<typeof vi.fn> }
+	}
 	let tokenCipher: { decrypt: ReturnType<typeof vi.fn> }
 	let sut: ListReposUseCase
 

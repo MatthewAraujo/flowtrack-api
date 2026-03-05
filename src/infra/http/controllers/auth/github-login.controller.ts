@@ -1,6 +1,6 @@
 import { Public } from '@/infra/auth/public'
-import { Controller, Get, Res } from '@nestjs/common'
 import { EnvService } from '@/infra/env/env.service'
+import { Controller, Get, Res } from '@nestjs/common'
 import type { Response } from 'express'
 
 @Controller('/auth/github')
@@ -20,8 +20,6 @@ export class GithubLoginController {
 			allow_signup: 'true',
 		})
 
-		return response.redirect(
-			`https://github.com/login/oauth/authorize?${params.toString()}`,
-		)
+		return response.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`)
 	}
 }

@@ -1,8 +1,9 @@
-import { MetricsAggregate, MetricsAggregateProps } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
+import {
+	MetricsAggregate,
+	MetricsAggregateProps,
+} from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
 
-export function makeMetricsAggregate(
-	override: Partial<MetricsAggregateProps> = {},
-) {
+export function makeMetricsAggregate(override: Partial<MetricsAggregateProps> = {}) {
 	return MetricsAggregate.create({
 		window: '7d',
 		from: new Date('2026-03-01T00:00:00.000Z'),

@@ -1,6 +1,6 @@
-import { describe, it, beforeEach, afterEach, expect, vi } from 'vitest'
 import { GitHubService } from '@/infra/github/github.service'
 import { InMemoryCacheRepository } from 'test/repositories/in-memory-cache-repository'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 const makeResponse = (
 	data: unknown,
@@ -42,9 +42,7 @@ describe('GitHubService', () => {
 			},
 		]
 
-		const fetchMock = vi
-			.spyOn(globalThis, 'fetch')
-			.mockResolvedValueOnce(makeResponse(repos))
+		const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(makeResponse(repos))
 
 		const first = await sut.listRepositories(token)
 		expect(first).toHaveLength(1)

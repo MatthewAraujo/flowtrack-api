@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-dashboard-summary'
 import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetDashboardSummaryUseCase', () => {
 	let prisma: any

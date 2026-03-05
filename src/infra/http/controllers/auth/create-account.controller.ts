@@ -24,7 +24,7 @@ type CreateAccountBodySchema = z.infer<typeof createAccountBodySchema>
 @Controller('/accounts')
 @Public()
 export class CreateAccountController {
-	constructor(private registerUser: RegisterUserUseCase) { }
+	constructor(private registerUser: RegisterUserUseCase) {}
 
 	@Post()
 	@HttpCode(201)

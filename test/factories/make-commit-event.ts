@@ -1,11 +1,8 @@
-import { faker } from '@faker-js/faker'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 import { CommitEvent, CommitEventProps } from '@/domain/flowtrack/enterprise/entities/commit-event'
+import { faker } from '@faker-js/faker'
 
-export function makeCommitEvent(
-	override: Partial<CommitEventProps> = {},
-	id?: UniqueEntityID,
-) {
+export function makeCommitEvent(override: Partial<CommitEventProps> = {}, id?: UniqueEntityID) {
 	return CommitEvent.create(
 		{
 			sha: faker.git.commitSha(),

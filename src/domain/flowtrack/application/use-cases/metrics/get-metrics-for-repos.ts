@@ -1,7 +1,7 @@
-import { Injectable } from '@nestjs/common'
+import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
 import { CacheRepository } from '@/infra/cache/cache-repository'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
+import { Injectable } from '@nestjs/common'
 
 type Window = '7d' | '30d' | '90d'
 
@@ -140,17 +140,12 @@ export class GetMetricsForReposUseCase {
 		reviews: number
 	}): MetricsResult {
 		const { window, from, to, commits, pulls, reviews } = params
-		const windowWeeks = Math.max(
-			1,
-			(to.getTime() - from.getTime()) / (7 * 24 * 60 * 60 * 1000),
-		)
+		const windowWeeks = Math.max(1, (to.getTime() - from.getTime()) / (7 * 24 * 60 * 60 * 1000))
 		const meanCommitsPerWeek = commits / windowWeeks
 
 		const closedPulls = pulls.filter((pull) => pull.closedAt || pull.mergedAt)
 		const rejectionCount = closedPulls.filter((pull) => pull.closedAt && !pull.mergedAt)
-		const prRejectionRate = closedPulls.length
-			? rejectionCount.length / closedPulls.length
-			: 0
+		const prRejectionRate = closedPulls.length ? rejectionCount.length / closedPulls.length : 0
 
 		const cycleTimes = closedPulls
 			.map((pull) => {
@@ -166,14 +161,8 @@ export class GetMetricsForReposUseCase {
 			? cycleTimes.reduce((acc, value) => acc + value, 0) / cycleTimes.length
 			: null
 
-		const linesAdded = closedPulls.reduce(
-			(acc, pull) => acc + (pull.additions ?? 0),
-			0,
-		)
-		const linesDeleted = closedPulls.reduce(
-			(acc, pull) => acc + (pull.deletions ?? 0),
-			0,
-		)
+		const linesAdded = closedPulls.reduce((acc, pull) => acc + (pull.additions ?? 0), 0)
+		const linesDeleted = closedPulls.reduce((acc, pull) => acc + (pull.deletions ?? 0), 0)
 		const netLines = linesAdded - linesDeleted
 
 		const productivityScore = this.calculateProductivityScore({
@@ -217,10 +206,7 @@ export class GetMetricsForReposUseCase {
 				: this.clamp(1 - params.meanPrCycleTimeHours / (24 * 7))
 
 		const score =
-			0.3 * commitScore +
-			0.3 * prThroughputScore +
-			0.2 * reviewScore +
-			0.2 * cycleTimeScore
+			0.3 * commitScore + 0.3 * prThroughputScore + 0.2 * reviewScore + 0.2 * cycleTimeScore
 
 		return Math.round(score * 100)
 	}

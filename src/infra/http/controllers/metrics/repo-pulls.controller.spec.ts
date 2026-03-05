@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RepoPullsController } from '@/infra/http/controllers/metrics/repo-pulls.controller'
 import { makePullRequestEvent } from 'test/factories/make-pull-request-event'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('RepoPullsController', () => {
 	let getRepoPulls: { execute: ReturnType<typeof vi.fn> }

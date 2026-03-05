@@ -1,8 +1,8 @@
-import { Public } from '@/infra/auth/public'
-import { BadRequestException, Controller, Get, HttpCode, Query } from '@nestjs/common'
-import { EnvService } from '@/infra/env/env.service'
-import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
 import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
+import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
+import { Public } from '@/infra/auth/public'
+import { EnvService } from '@/infra/env/env.service'
+import { BadRequestException, Controller, Get, Query, Redirect } from '@nestjs/common'
 
 @Controller('/auth/github')
 @Public()
@@ -13,7 +13,7 @@ export class GithubCallbackController {
 	) {}
 
 	@Get('/callback')
-	@HttpCode(200)
+	@Redirect()
 	async callback(@Query('code') code?: string, @Query('state') state?: string) {
 		if (!code) {
 			return { error: 'Missing OAuth code' }
@@ -33,8 +33,7 @@ export class GithubCallbackController {
 		const { accessToken } = result.value
 		const uiCallback = this.envService.get('GITHUB_OAUTH_UI_REDIRECT_URL')
 		return {
-			access_token: accessToken,
-			redirect_url: `${uiCallback}?token=${accessToken}`,
+			url: `${uiCallback}?token=${accessToken}`,
 		}
 	}
 }

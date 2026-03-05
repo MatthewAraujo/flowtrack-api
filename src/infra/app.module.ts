@@ -22,4 +22,4 @@ import { HttpModule } from './http/http.module'
 		GitHubModule,
 	],
 })
-export class AppModule { }
+export class AppModule {}

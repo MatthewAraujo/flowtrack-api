@@ -1,3 +1,10 @@
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
+import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
+import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
+import { CurrentUser } from '@/infra/auth/current-user-decorator'
+import { Roles } from '@/infra/authorization/roles'
+import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
+import { RepoPullsPresenter } from '@/infra/http/presenters/repo-pulls.presenter'
 import {
 	BadRequestException,
 	Controller,
@@ -8,13 +15,6 @@ import {
 	Query,
 } from '@nestjs/common'
 import { z } from 'zod'
-import { CurrentUser } from '@/infra/auth/current-user-decorator'
-import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
-import { Roles } from '@/infra/authorization/roles'
-import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
-import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
-import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
-import { RepoPullsPresenter } from '@/infra/http/presenters/repo-pulls.presenter'
 
 const paramsSchema = z.object({
 	repoId: z.string().uuid(),

@@ -6,4 +6,3 @@ export class InvalidPayloadError extends Error implements UseCaseError {
 		this.name = 'InvalidPayloadError'
 	}
 }
-

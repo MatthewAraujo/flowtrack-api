@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { DashboardSummaryController } from '@/infra/http/controllers/dashboard/summary.controller'
 import { makeDashboardSummary } from 'test/factories/make-dashboard-summary'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('DashboardSummaryController', () => {
 	let getDashboardSummary: { execute: ReturnType<typeof vi.fn> }

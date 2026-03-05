@@ -1,6 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { RepoMetricsController } from '@/infra/http/controllers/metrics/repo-metrics.controller'
 import { makeRepoMetrics } from 'test/factories/make-repo-metrics'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('RepoMetricsController', () => {
 	let getRepoMetrics: { execute: ReturnType<typeof vi.fn> }
@@ -18,11 +18,7 @@ describe('RepoMetricsController', () => {
 	})
 
 	it('returns metrics for repo', async () => {
-		const response = await sut.handle(
-			{ sub: 'user-1' },
-			{ repoId: 'repo-1' },
-			{ window: '7d' },
-		)
+		const response = await sut.handle({ sub: 'user-1' }, { repoId: 'repo-1' }, { window: '7d' })
 
 		expect(getRepoMetrics.execute).toHaveBeenCalledWith({
 			userId: 'user-1',

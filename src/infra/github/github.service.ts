@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common'
 import { createHash } from 'node:crypto'
 import { CacheRepository } from '@/infra/cache/cache-repository'
+import { Injectable } from '@nestjs/common'
 
 type GitHubRepo = {
 	id: number
@@ -72,16 +72,15 @@ export class GitHubService {
 
 	async listRepositories(token: string): Promise<GitHubRepo[]> {
 		const tokenKey = this.tokenKey(token)
-		return this.paginate<GitHubRepo>(
-			(page) =>
-				this.requestJson<GitHubRepo[]>(
-					`https://api.github.com/user/repos?per_page=${DEFAULT_PER_PAGE}&page=${page}`,
-					token,
-					{
-						cacheKey: `github:${tokenKey}:repos:page:${page}`,
-						ttlSeconds: CACHE_TTL.repos,
-					},
-				),
+		return this.paginate<GitHubRepo>((page) =>
+			this.requestJson<GitHubRepo[]>(
+				`https://api.github.com/user/repos?per_page=${DEFAULT_PER_PAGE}&page=${page}`,
+				token,
+				{
+					cacheKey: `github:${tokenKey}:repos:page:${page}`,
+					ttlSeconds: CACHE_TTL.repos,
+				},
+			),
 		)
 	}
 
@@ -96,16 +95,15 @@ export class GitHubService {
 		const since = from.toISOString()
 		const until = to.toISOString()
 
-		return this.paginate<GitHubCommit>(
-			(page) =>
-				this.requestJson<GitHubCommit[]>(
-					`https://api.github.com/repos/${owner}/${repo}/commits?per_page=${DEFAULT_PER_PAGE}&page=${page}&since=${since}&until=${until}`,
-					token,
-					{
-						cacheKey: `github:${tokenKey}:commits:${owner}/${repo}:${since}:${until}:page:${page}`,
-						ttlSeconds: CACHE_TTL.commits,
-					},
-				),
+		return this.paginate<GitHubCommit>((page) =>
+			this.requestJson<GitHubCommit[]>(
+				`https://api.github.com/repos/${owner}/${repo}/commits?per_page=${DEFAULT_PER_PAGE}&page=${page}&since=${since}&until=${until}`,
+				token,
+				{
+					cacheKey: `github:${tokenKey}:commits:${owner}/${repo}:${since}:${until}:page:${page}`,
+					ttlSeconds: CACHE_TTL.commits,
+				},
+			),
 		)
 	}
 
@@ -182,16 +180,15 @@ export class GitHubService {
 		number: number,
 	): Promise<GitHubReview[]> {
 		const tokenKey = this.tokenKey(token)
-		return this.paginate<GitHubReview>(
-			(page) =>
-				this.requestJson<GitHubReview[]>(
-					`https://api.github.com/repos/${owner}/${repo}/pulls/${number}/reviews?per_page=${DEFAULT_PER_PAGE}&page=${page}`,
-					token,
-					{
-						cacheKey: `github:${tokenKey}:reviews:${owner}/${repo}:${number}:page:${page}`,
-						ttlSeconds: CACHE_TTL.reviews,
-					},
-				),
+		return this.paginate<GitHubReview>((page) =>
+			this.requestJson<GitHubReview[]>(
+				`https://api.github.com/repos/${owner}/${repo}/pulls/${number}/reviews?per_page=${DEFAULT_PER_PAGE}&page=${page}`,
+				token,
+				{
+					cacheKey: `github:${tokenKey}:reviews:${owner}/${repo}:${number}:page:${page}`,
+					ttlSeconds: CACHE_TTL.reviews,
+				},
+			),
 		)
 	}
 
@@ -219,9 +216,7 @@ export class GitHubService {
 		options: { cacheKey?: string; ttlSeconds?: number } = {},
 		attempt = 0,
 	): Promise<T> {
-		const cached = options.cacheKey
-			? await this.cacheRepository.get<T>(options.cacheKey)
-			: null
+		const cached = options.cacheKey ? await this.cacheRepository.get<T>(options.cacheKey) : null
 
 		try {
 			const response = await fetch(url, {
@@ -252,11 +247,7 @@ export class GitHubService {
 			const data = (await response.json()) as T
 
 			if (options.cacheKey) {
-				await this.cacheRepository.set(
-					options.cacheKey,
-					JSON.stringify(data),
-					options.ttlSeconds,
-				)
+				await this.cacheRepository.set(options.cacheKey, JSON.stringify(data), options.ttlSeconds)
 			}
 
 			return data

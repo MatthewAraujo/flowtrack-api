@@ -1,7 +1,7 @@
+import * as crypto from 'node:crypto'
 import { TokenCipher } from '@/domain/flowtrack/application/cryptography/token-cipher'
-import { Injectable } from '@nestjs/common'
 import { EnvService } from '@/infra/env/env.service'
-import crypto from 'crypto'
+import { Injectable } from '@nestjs/common'
 
 @Injectable()
 export class AesTokenCipher implements TokenCipher {

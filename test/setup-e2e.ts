@@ -4,8 +4,8 @@ import { execSync } from 'node:child_process'
 import { randomUUID } from 'node:crypto'
 import { DomainEvents } from '@/core/events/domain-events'
 import { envSchema } from '@/infra/env/env'
-import { Redis } from 'ioredis'
 import { PrismaClient } from 'generated/prisma'
+import { Redis } from 'ioredis'
 
 config({ path: '.env', override: true })
 config({ path: '.env.test', override: true })

@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common'
-import { IngestRepositoryActivityUseCase } from '../github/ingest-repository-activity'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
-import { TokenCipher } from '../../cryptography/token-cipher'
-import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { Either, left, right } from '@/core/either'
-import { NotFoundError } from '../errors/not-found-error'
-import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
+import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { RepoMetrics } from '@/domain/flowtrack/enterprise/entities/value-objects/repo-metrics'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
+import { Injectable } from '@nestjs/common'
+import { TokenCipher } from '../../cryptography/token-cipher'
+import { NotFoundError } from '../errors/not-found-error'
+import { IngestRepositoryActivityUseCase } from '../github/ingest-repository-activity'
+import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
 
 interface GetRepoMetricsUseCaseRequest {
 	userId: string
@@ -15,10 +15,7 @@ interface GetRepoMetricsUseCaseRequest {
 	refresh?: boolean
 }
 
-type GetRepoMetricsUseCaseResponse = Either<
-	NotAllowedError | NotFoundError,
-	RepoMetrics
->
+type GetRepoMetricsUseCaseResponse = Either<NotAllowedError | NotFoundError, RepoMetrics>
 
 @Injectable()
 export class GetRepoMetricsUseCase {

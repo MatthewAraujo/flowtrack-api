@@ -36,11 +36,16 @@ export class SyncProfileDataUseCase {
 		})
 
 		if (!githubAccount?.accessToken) {
+			const syncedAt = new Date().toISOString()
+			const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
+			const days = options?.days ?? defaultDays
 			return {
 				repositories: 0,
 				commitsUpserted: 0,
 				pullsUpserted: 0,
 				reviewsUpserted: 0,
+				syncedAt,
+				days,
 			}
 		}
 

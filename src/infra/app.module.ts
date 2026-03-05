@@ -8,8 +8,7 @@ import { EnvModule } from './env/env.module'
 import { GitHubModule } from './github/github.module'
 import { HttpModule } from './http/http.module'
 import { ScheduleModule } from '@nestjs/schedule'
-import { ProfileSyncJob } from './profile/profile-sync.job'
-import { DatabaseModule } from './database/database.module'
+import { CronJobsModule } from './jobs/cron-jobs.module'
 
 @Module({
 	imports: [
@@ -24,8 +23,7 @@ import { DatabaseModule } from './database/database.module'
 		HttpModule,
 		EnvModule,
 		GitHubModule,
-		DatabaseModule,
+		CronJobsModule,
 	],
-	providers: [ProfileSyncJob],
 })
 export class AppModule {}

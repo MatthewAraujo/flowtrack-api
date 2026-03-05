@@ -9,6 +9,7 @@ import { GitHubModule } from './github/github.module'
 import { HttpModule } from './http/http.module'
 import { ScheduleModule } from '@nestjs/schedule'
 import { ProfileSyncJob } from './profile/profile-sync.job'
+import { DatabaseModule } from './database/database.module'
 
 @Module({
 	imports: [
@@ -23,6 +24,7 @@ import { ProfileSyncJob } from './profile/profile-sync.job'
 		HttpModule,
 		EnvModule,
 		GitHubModule,
+		DatabaseModule,
 	],
 	providers: [ProfileSyncJob],
 })

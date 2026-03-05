@@ -1,14 +1,10 @@
 import { AuthenticateUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/authenticate-user'
-import { WrongCredentialsError } from '@/domain/flowtrack/application/use-cases/errors/wrong-credentials-error'
 import { Public } from '@/infra/auth/public'
-import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import {
-	BadRequestException,
 	Body,
 	Controller,
 	Post,
-	UnauthorizedException,
 	UsePipes,
 } from '@nestjs/common'
 import { z } from 'zod'
@@ -36,11 +32,7 @@ export class AuthenticateController {
 		})
 
 		if (result.isLeft()) {
-			throwUseCaseError(
-				result.value,
-				[[WrongCredentialsError, (error) => new UnauthorizedException(error.message)]],
-				(error) => new BadRequestException(error.message),
-			)
+			return result
 		}
 
 		const { accessToken } = result.value

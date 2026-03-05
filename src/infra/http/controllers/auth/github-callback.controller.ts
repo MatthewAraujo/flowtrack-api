@@ -1,9 +1,7 @@
-import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
 import { Public } from '@/infra/auth/public'
 import { EnvService } from '@/infra/env/env.service'
-import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
-import { BadRequestException, Controller, Get, Query, Redirect, Logger } from '@nestjs/common'
+import { Controller, Get, Query, Redirect, Logger } from '@nestjs/common'
 
 @Controller('/auth/github')
 @Public()
@@ -24,11 +22,7 @@ export class GithubCallbackController {
 
 		const result = await this.githubCallback.execute({ code })
 		if (result.isLeft()) {
-			throwUseCaseError(
-				result.value,
-				[[NotFoundError, (error) => new BadRequestException(error.message)]],
-				(error) => new BadRequestException(error.message),
-			)
+			return result
 		}
 
 		const { accessToken, userId } = result.value

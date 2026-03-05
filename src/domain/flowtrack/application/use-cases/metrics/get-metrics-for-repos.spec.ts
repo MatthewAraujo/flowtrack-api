@@ -1,20 +1,26 @@
 import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
+import { makePullRequestEvent } from 'test/factories/make-pull-request-event'
+import { makeCommitEvent } from 'test/factories/make-commit-event'
 import { InMemoryCacheRepository } from 'test/repositories/in-memory-cache-repository'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetMetricsForReposUseCase', () => {
-	let prisma: any
+	let metricsRepository: {
+		listCommits: ReturnType<typeof vi.fn>
+		listPulls: ReturnType<typeof vi.fn>
+		listReviews: ReturnType<typeof vi.fn>
+	}
 	let cache: InMemoryCacheRepository
 	let sut: GetMetricsForReposUseCase
 
 	beforeEach(() => {
-		prisma = {
-			commitEvent: { findMany: vi.fn() },
-			pullRequestEvent: { findMany: vi.fn() },
-			reviewEvent: { findMany: vi.fn() },
+		metricsRepository = {
+			listCommits: vi.fn(),
+			listPulls: vi.fn(),
+			listReviews: vi.fn(),
 		}
 		cache = new InMemoryCacheRepository()
-		sut = new GetMetricsForReposUseCase(prisma, cache)
+		sut = new GetMetricsForReposUseCase(metricsRepository as any, cache)
 	})
 
 	it('calculates core metrics', () => {
@@ -55,15 +61,15 @@ describe('GetMetricsForReposUseCase', () => {
 	})
 
 	it('uses cached metrics for same window bucket', async () => {
-		prisma.commitEvent.findMany.mockResolvedValue([])
-		prisma.pullRequestEvent.findMany.mockResolvedValue([])
-		prisma.reviewEvent.findMany.mockResolvedValue([])
+		metricsRepository.listCommits.mockResolvedValue([makeCommitEvent()])
+		metricsRepository.listPulls.mockResolvedValue([makePullRequestEvent()])
+		metricsRepository.listReviews.mockResolvedValue([{ id: 'r1' }])
 
 		const first = await sut.execute(['repo-1'], '7d')
 		const second = await sut.execute(['repo-1'], '7d')
 
 		expect(first.window).toBe('7d')
 		expect(second.window).toBe('7d')
-		expect(prisma.commitEvent.findMany).toHaveBeenCalledTimes(1)
+		expect(metricsRepository.listCommits).toHaveBeenCalledTimes(1)
 	})
 })

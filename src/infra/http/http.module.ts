@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common'
+import { APP_INTERCEPTOR } from '@nestjs/core'
 
 import { AuthenticateUserUseCase } from '@/domain/flowtrack/application/use-cases//auth/authenticate-user'
 import { RegisterUserUseCase } from '@/domain/flowtrack/application/use-cases/auth/register-user'
@@ -35,6 +36,7 @@ import { ProfileSyncController } from './controllers/profile/sync.controller'
 import { ProfileSyncStatusController } from './controllers/profile/sync-status.controller'
 import { ProfileTrendsController } from './controllers/profile/trends.controller'
 import { ListReposController } from './controllers/repos/list-repos.controller'
+import { UseCaseResultInterceptor } from './interceptors/use-case-result.interceptor'
 
 @Module({
 	imports: [
@@ -62,6 +64,10 @@ import { ListReposController } from './controllers/repos/list-repos.controller'
 		HealthController,
 	],
 	providers: [
+		{
+			provide: APP_INTERCEPTOR,
+			useClass: UseCaseResultInterceptor,
+		},
 		RegisterUserUseCase,
 		AuthenticateUserUseCase,
 		ListReposUseCase,

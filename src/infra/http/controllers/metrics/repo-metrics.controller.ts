@@ -1,17 +1,11 @@
-import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
-import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
-import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { RepoMetricsPresenter } from '@/infra/http/presenters/repo-metrics.presenter'
 import {
-	BadRequestException,
 	Controller,
-	ForbiddenException,
 	Get,
-	NotFoundException,
 	Param,
 	Query,
 } from '@nestjs/common'
@@ -46,14 +40,7 @@ export class RepoMetricsController {
 		})
 
 		if (result.isLeft()) {
-			throwUseCaseError(
-				result.value,
-				[
-					[NotAllowedError, () => new ForbiddenException('Forbidden')],
-					[NotFoundError, (error) => new NotFoundException(error.message)],
-				],
-				(error) => new BadRequestException(error.message),
-			)
+			return result
 		}
 
 		return RepoMetricsPresenter.toHTTP(result.value)

@@ -2,11 +2,11 @@ import { Either, left, right } from '@/core/either'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { RepoMetrics } from '@/domain/flowtrack/enterprise/entities/value-objects/repo-metrics'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { NotFoundError } from '../errors/not-found-error'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
 import { ensureRepository } from '../repos/repository-lookup'
+import { RepositoryLookupRepository } from '@/domain/flowtrack/application/repositories/repository-lookup-repository'
 
 interface GetRepoMetricsUseCaseRequest {
 	userId: string
@@ -20,9 +20,9 @@ type GetRepoMetricsUseCaseResponse = Either<NotAllowedError | NotFoundError, Rep
 @Injectable()
 export class GetRepoMetricsUseCase {
 	constructor(
-		private prisma: PrismaService,
 		private metrics: GetMetricsForReposUseCase,
 		private repositoryAccess: RepositoryAccessService,
+		private repositories: RepositoryLookupRepository,
 	) {}
 
 	async execute({
@@ -36,7 +36,7 @@ export class GetRepoMetricsUseCase {
 			return left(new NotAllowedError())
 		}
 
-		const repositoryResult = await ensureRepository(this.prisma, repoId)
+		const repositoryResult = await ensureRepository(this.repositories, repoId)
 		if (repositoryResult.isLeft()) {
 			return left(repositoryResult.value)
 		}

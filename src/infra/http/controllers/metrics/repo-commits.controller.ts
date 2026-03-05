@@ -1,18 +1,12 @@
-import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
-import { NotFoundError } from '@/domain/flowtrack/application/use-cases/errors/not-found-error'
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
-import { throwUseCaseError } from '@/infra/http/errors/use-case-error'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { RepoCommitsPresenter } from '@/infra/http/presenters/repo-commits.presenter'
 import { parseDateRange } from '@/infra/http/utils/date-range'
 import {
-	BadRequestException,
 	Controller,
-	ForbiddenException,
 	Get,
-	NotFoundException,
 	Param,
 	Query,
 } from '@nestjs/common'
@@ -49,14 +43,7 @@ export class RepoCommitsController {
 		})
 
 		if (result.isLeft()) {
-			throwUseCaseError(
-				result.value,
-				[
-					[NotAllowedError, () => new ForbiddenException('Forbidden')],
-					[NotFoundError, (error) => new NotFoundException(error.message)],
-				],
-				(error) => new BadRequestException(error.message),
-			)
+			return result
 		}
 
 		return {

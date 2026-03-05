@@ -29,7 +29,11 @@ describe('DashboardSummaryController', () => {
 			window: '30d',
 			refresh: false,
 		})
-		expect(response.repository_ids).toEqual(['repo-1', 'repo-2'])
-		expect(response.productivity_score).toBe(60)
+		if ('repository_ids' in response) {
+			expect(response.repository_ids).toEqual(['repo-1', 'repo-2'])
+			expect(response.productivity_score).toBe(60)
+		} else {
+			throw new Error('Expected dashboard summary response')
+		}
 	})
 })

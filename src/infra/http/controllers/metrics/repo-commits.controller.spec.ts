@@ -40,6 +40,10 @@ describe('RepoCommitsController', () => {
 			from: new Date('2026-03-01T00:00:00.000Z'),
 			to: new Date('2026-03-02T00:00:00.000Z'),
 		})
-		expect(response.items).toHaveLength(1)
+		if ('items' in response) {
+			expect(response.items).toHaveLength(1)
+		} else {
+			throw new Error('Expected commits response')
+		}
 	})
 })

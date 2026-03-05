@@ -3,15 +3,12 @@ import { makeMetricsAggregate } from 'test/factories/make-metrics-aggregate'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoMetricsUseCase', () => {
-	let prisma: any
 	let metrics: { getWindowRange: ReturnType<typeof vi.fn>; execute: ReturnType<typeof vi.fn> }
 	let repositoryAccess: { hasAccess: ReturnType<typeof vi.fn> }
+	let repositories: { findById: ReturnType<typeof vi.fn> }
 	let sut: GetRepoMetricsUseCase
 
 	beforeEach(() => {
-		prisma = {
-			repository: { findUnique: vi.fn() },
-		}
 		metrics = {
 			getWindowRange: vi.fn().mockReturnValue({
 				from: new Date('2026-03-01T00:00:00.000Z'),
@@ -32,15 +29,18 @@ describe('GetRepoMetricsUseCase', () => {
 			),
 		}
 		repositoryAccess = { hasAccess: vi.fn().mockResolvedValue(true) }
+		repositories = { findById: vi.fn() }
 
-		sut = new GetRepoMetricsUseCase(prisma, metrics as any, repositoryAccess as any)
+		sut = new GetRepoMetricsUseCase(
+			metrics as any,
+			repositoryAccess as any,
+			repositories as any,
+		)
 	})
 
 	it('returns metrics for repo', async () => {
-		prisma.repository.findUnique.mockResolvedValue({
+		repositories.findById.mockResolvedValue({
 			id: 'repo-1',
-			ownerLogin: 'acme',
-			name: 'flowtrack',
 		})
 
 		const result = await sut.execute({

@@ -1,12 +1,12 @@
 import { Either, left, right } from '@/core/either'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
-import { CommitEvent } from '@/domain/flowtrack/enterprise/entities/commit-event'
 import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { NotFoundError } from '../errors/not-found-error'
-import { toCommitEvent } from './repo-event-mappers'
 import { ensureRepository } from './repository-lookup'
+import { RepoEventsRepository } from '@/domain/flowtrack/application/repositories/repo-events-repository'
+import { RepositoryLookupRepository } from '@/domain/flowtrack/application/repositories/repository-lookup-repository'
+import { CommitEvent } from '@/domain/flowtrack/enterprise/entities/commit-event'
 
 interface GetRepoCommitsUseCaseRequest {
 	userId: string
@@ -25,8 +25,9 @@ type GetRepoCommitsUseCaseResponse = Either<
 @Injectable()
 export class GetRepoCommitsUseCase {
 	constructor(
-		private prisma: PrismaService,
 		private repositoryAccess: RepositoryAccessService,
+		private repositories: RepositoryLookupRepository,
+		private repoEvents: RepoEventsRepository,
 	) {}
 
 	async execute({
@@ -40,27 +41,20 @@ export class GetRepoCommitsUseCase {
 			return left(new NotAllowedError())
 		}
 
-		const repositoryResult = await ensureRepository(this.prisma, repoId)
+		const repositoryResult = await ensureRepository(this.repositories, repoId)
 		if (repositoryResult.isLeft()) {
 			return left(repositoryResult.value)
 		}
 		const repository = repositoryResult.value
 
-		const commits = await this.prisma.commitEvent.findMany({
-			where: {
-				repositoryId: repository.id,
-				committedAt: {
-					gte: from,
-					lte: to,
-				},
-			},
-			orderBy: {
-				committedAt: 'asc',
-			},
+		const commits = await this.repoEvents.listCommits({
+			repositoryId: repository.id,
+			from,
+			to,
 		})
 
 		return right({
-			items: commits.map(toCommitEvent),
+			items: commits,
 		})
 	}
 }

@@ -1,36 +1,31 @@
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
+import { makeCommitEvent } from 'test/factories/make-commit-event'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 describe('GetRepoCommitsUseCase', () => {
-	let prisma: any
 	let repositoryAccess: { hasAccess: ReturnType<typeof vi.fn> }
+	let repositories: { findById: ReturnType<typeof vi.fn> }
+	let repoEvents: { listCommits: ReturnType<typeof vi.fn> }
 	let sut: GetRepoCommitsUseCase
 
 	beforeEach(() => {
-		prisma = {
-			repository: { findUnique: vi.fn() },
-			commitEvent: { findMany: vi.fn() },
-		}
 		repositoryAccess = { hasAccess: vi.fn().mockResolvedValue(true) }
+		repositories = { findById: vi.fn() }
+		repoEvents = { listCommits: vi.fn() }
 
-		sut = new GetRepoCommitsUseCase(prisma, repositoryAccess as any)
+		sut = new GetRepoCommitsUseCase(
+			repositoryAccess as any,
+			repositories as any,
+			repoEvents as any,
+		)
 	})
 
 	it('returns commits when access granted', async () => {
-		prisma.repository.findUnique.mockResolvedValue({
+		repositories.findById.mockResolvedValue({
 			id: 'repo-1',
-			ownerLogin: 'acme',
-			name: 'flowtrack',
 		})
-		prisma.commitEvent.findMany.mockResolvedValue([
-			{
-				id: 'c1',
-				sha: 'abc',
-				authorLogin: null,
-				authorEmail: null,
-				message: null,
-				committedAt: new Date('2026-03-01T12:00:00.000Z'),
-			},
+		repoEvents.listCommits.mockResolvedValue([
+			makeCommitEvent({ sha: 'abc', committedAt: new Date('2026-03-01T12:00:00.000Z') }),
 		])
 
 		const result = await sut.execute({

@@ -1,12 +1,12 @@
 import { Either, left, right } from '@/core/either'
 import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
-import { PullRequestEvent } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
 import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { NotFoundError } from '../errors/not-found-error'
-import { toPullRequestEvent } from './repo-event-mappers'
 import { ensureRepository } from './repository-lookup'
+import { RepoEventsRepository } from '@/domain/flowtrack/application/repositories/repo-events-repository'
+import { RepositoryLookupRepository } from '@/domain/flowtrack/application/repositories/repository-lookup-repository'
+import { PullRequestEvent } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
 
 interface GetRepoPullsUseCaseRequest {
 	userId: string
@@ -25,8 +25,9 @@ type GetRepoPullsUseCaseResponse = Either<
 @Injectable()
 export class GetRepoPullsUseCase {
 	constructor(
-		private prisma: PrismaService,
 		private repositoryAccess: RepositoryAccessService,
+		private repositories: RepositoryLookupRepository,
+		private repoEvents: RepoEventsRepository,
 	) {}
 
 	async execute({
@@ -40,43 +41,20 @@ export class GetRepoPullsUseCase {
 			return left(new NotAllowedError())
 		}
 
-		const repositoryResult = await ensureRepository(this.prisma, repoId)
+		const repositoryResult = await ensureRepository(this.repositories, repoId)
 		if (repositoryResult.isLeft()) {
 			return left(repositoryResult.value)
 		}
 		const repository = repositoryResult.value
 
-		const pulls = await this.prisma.pullRequestEvent.findMany({
-			where: {
-				repositoryId: repository.id,
-				createdAt: {
-					lte: to,
-				},
-				OR: [
-					{
-						createdAt: {
-							gte: from,
-						},
-					},
-					{
-						closedAt: {
-							gte: from,
-						},
-					},
-					{
-						mergedAt: {
-							gte: from,
-						},
-					},
-				],
-			},
-			orderBy: {
-				createdAt: 'asc',
-			},
+		const pulls = await this.repoEvents.listPulls({
+			repositoryId: repository.id,
+			from,
+			to,
 		})
 
 		return right({
-			items: pulls.map(toPullRequestEvent),
+			items: pulls,
 		})
 	}
 }

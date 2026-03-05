@@ -1,7 +1,6 @@
 import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-objects/metrics-aggregate'
 import { CacheRepository } from '@/infra/cache/cache-repository'
 import { getCachedJson, setCachedJson } from '@/infra/cache/cache-json'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { calculateMetrics } from './metrics-calculator'
 import {
@@ -9,6 +8,7 @@ import {
 	toMetricsAggregateCache,
 	type MetricsAggregateCache,
 } from './metrics-cache'
+import { MetricsReadRepository } from '@/domain/flowtrack/application/repositories/metrics-read-repository'
 
 type Window = '7d' | '30d' | '90d'
 
@@ -17,7 +17,7 @@ type MetricsResult = MetricsAggregate
 @Injectable()
 export class GetMetricsForReposUseCase {
 	constructor(
-		private prisma: PrismaService,
+		private metricsRepository: MetricsReadRepository,
 		private cacheRepository: CacheRepository,
 	) {}
 
@@ -47,37 +47,9 @@ export class GetMetricsForReposUseCase {
 		}
 
 		const [commits, pulls, reviews] = await Promise.all([
-			this.prisma.commitEvent.findMany({
-				where: {
-					repositoryId: { in: repositoryIds },
-					committedAt: {
-						gte: from,
-						lte: to,
-					},
-				},
-			}),
-			this.prisma.pullRequestEvent.findMany({
-				where: {
-					repositoryId: { in: repositoryIds },
-					OR: [
-						{
-							closedAt: { gte: from, lte: to },
-						},
-						{
-							mergedAt: { gte: from, lte: to },
-						},
-					],
-				},
-			}),
-			this.prisma.reviewEvent.findMany({
-				where: {
-					repositoryId: { in: repositoryIds },
-					submittedAt: {
-						gte: from,
-						lte: to,
-					},
-				},
-			}),
+			this.metricsRepository.listCommits({ repositoryIds, from, to }),
+			this.metricsRepository.listPulls({ repositoryIds, from, to }),
+			this.metricsRepository.listReviews({ repositoryIds, from, to }),
 		])
 
 		const metrics = this.calculateMetrics({

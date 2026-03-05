@@ -26,7 +26,11 @@ describe('RepoMetricsController', () => {
 			window: '7d',
 			refresh: false,
 		})
-		expect(response.repository_id).toBe('repo-1')
-		expect(response.productivity_score).toBe(60)
+		if ('repository_id' in response) {
+			expect(response.repository_id).toBe('repo-1')
+			expect(response.productivity_score).toBe(60)
+		} else {
+			throw new Error('Expected repo metrics response')
+		}
 	})
 })

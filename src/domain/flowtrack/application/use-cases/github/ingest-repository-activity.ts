@@ -67,7 +67,7 @@ export class IngestRepositoryActivityUseCase {
 					},
 				},
 				update: {
-					githubId: pull.id,
+					githubId: BigInt(pull.id),
 					title: pull.title,
 					state: pull.state,
 					isMerged: Boolean(pull.merged_at),
@@ -84,7 +84,7 @@ export class IngestRepositoryActivityUseCase {
 					id: new UniqueEntityID().toString(),
 					repositoryId,
 					number: pull.number,
-					githubId: pull.id,
+					githubId: BigInt(pull.id),
 					title: pull.title,
 					state: pull.state,
 					isMerged: Boolean(pull.merged_at),
@@ -111,7 +111,7 @@ export class IngestRepositoryActivityUseCase {
 					where: {
 						repositoryId_githubId: {
 							repositoryId,
-							githubId: review.id,
+							githubId: BigInt(review.id),
 						},
 					},
 					update: {
@@ -124,7 +124,7 @@ export class IngestRepositoryActivityUseCase {
 						id: new UniqueEntityID().toString(),
 						repositoryId,
 						pullNumber: pull.number,
-						githubId: review.id,
+						githubId: BigInt(review.id),
 						reviewerLogin: review.user?.login ?? null,
 						state: review.state,
 						submittedAt: new Date(review.submitted_at),

@@ -12,8 +12,8 @@ export class RepoPullsPresenter {
 			created_at: pull.createdAt,
 			closed_at: pull.closedAt,
 			merged_at: pull.mergedAt,
-			additions: pull.additions,
-			deletions: pull.deletions,
+			additions: pull.additions ?? 0,
+			deletions: pull.deletions ?? 0,
 			changed_files: pull.changedFiles,
 		}))
 	}

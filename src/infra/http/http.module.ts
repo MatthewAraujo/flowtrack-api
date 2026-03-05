@@ -7,6 +7,9 @@ import { GetDashboardSummaryUseCase } from '@/domain/flowtrack/application/use-c
 import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
 import { GetRepoMetricsUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-repo-metrics'
 import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/oauth/github-callback'
+import { GetProfileSummaryUseCase } from '@/domain/flowtrack/application/use-cases/profile/get-profile-summary'
+import { GetProfileTrendsUseCase } from '@/domain/flowtrack/application/use-cases/profile/get-profile-trends'
+import { SyncProfileDataUseCase } from '@/domain/flowtrack/application/use-cases/profile/sync-profile-data'
 import { GetRepoCommitsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-commits'
 import { GetRepoPullsUseCase } from '@/domain/flowtrack/application/use-cases/repos/get-repo-pulls'
 import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
@@ -26,6 +29,10 @@ import { HealthController } from './controllers/health.controller'
 import { RepoCommitsController } from './controllers/metrics/repo-commits.controller'
 import { RepoMetricsController } from './controllers/metrics/repo-metrics.controller'
 import { RepoPullsController } from './controllers/metrics/repo-pulls.controller'
+import { ProfileSummaryController } from './controllers/profile/summary.controller'
+import { ProfileSyncController } from './controllers/profile/sync.controller'
+import { ProfileSyncStatusController } from './controllers/profile/sync-status.controller'
+import { ProfileTrendsController } from './controllers/profile/trends.controller'
 import { ListReposController } from './controllers/repos/list-repos.controller'
 
 @Module({
@@ -47,6 +54,10 @@ import { ListReposController } from './controllers/repos/list-repos.controller'
 		RepoPullsController,
 		RepoMetricsController,
 		DashboardSummaryController,
+		ProfileSummaryController,
+		ProfileTrendsController,
+		ProfileSyncController,
+		ProfileSyncStatusController,
 		HealthController,
 	],
 	providers: [
@@ -60,6 +71,9 @@ import { ListReposController } from './controllers/repos/list-repos.controller'
 		GetRepoMetricsUseCase,
 		GetMetricsForReposUseCase,
 		GetDashboardSummaryUseCase,
+		GetProfileSummaryUseCase,
+		GetProfileTrendsUseCase,
+		SyncProfileDataUseCase,
 		GithubOAuthService,
 	],
 })

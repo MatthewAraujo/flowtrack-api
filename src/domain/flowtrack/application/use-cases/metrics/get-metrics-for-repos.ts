@@ -2,6 +2,7 @@ import { MetricsAggregate } from '@/domain/flowtrack/enterprise/entities/value-o
 import { CacheRepository } from '@/infra/cache/cache-repository'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
+import { calculateMetrics } from './metrics-calculator'
 
 type Window = '7d' | '30d' | '90d'
 
@@ -140,78 +141,20 @@ export class GetMetricsForReposUseCase {
 		reviews: number
 	}): MetricsResult {
 		const { window, from, to, commits, pulls, reviews } = params
-		const windowWeeks = Math.max(1, (to.getTime() - from.getTime()) / (7 * 24 * 60 * 60 * 1000))
-		const meanCommitsPerWeek = commits / windowWeeks
-
-		const closedPulls = pulls.filter((pull) => pull.closedAt || pull.mergedAt)
-		const rejectionCount = closedPulls.filter((pull) => pull.closedAt && !pull.mergedAt)
-		const prRejectionRate = closedPulls.length ? rejectionCount.length / closedPulls.length : 0
-
-		const cycleTimes = closedPulls
-			.map((pull) => {
-				const end = pull.mergedAt ?? pull.closedAt
-				if (!end) {
-					return null
-				}
-				return (end.getTime() - pull.createdAt.getTime()) / (1000 * 60 * 60)
-			})
-			.filter((value): value is number => value !== null && value >= 0)
-
-		const meanPrCycleTimeHours = cycleTimes.length
-			? cycleTimes.reduce((acc, value) => acc + value, 0) / cycleTimes.length
-			: null
-
-		const linesAdded = closedPulls.reduce((acc, pull) => acc + (pull.additions ?? 0), 0)
-		const linesDeleted = closedPulls.reduce((acc, pull) => acc + (pull.deletions ?? 0), 0)
-		const netLines = linesAdded - linesDeleted
-
-		const productivityScore = this.calculateProductivityScore({
-			meanCommitsPerWeek,
-			closedPrs: closedPulls.length,
-			reviews,
-			meanPrCycleTimeHours,
-		})
+		const calculated = calculateMetrics({ from, to, commits, pulls, reviews })
 
 		return MetricsAggregate.create({
 			window,
 			from,
 			to,
-			meanCommitsPerWeek,
-			meanPrCycleTimeHours,
-			prRejectionRate,
-			linesAdded,
-			linesDeleted,
-			netLines,
-			productivityScore,
-			counts: {
-				commits,
-				closedPrs: closedPulls.length,
-				reviews,
-			},
+			meanCommitsPerWeek: calculated.meanCommitsPerWeek,
+			meanPrCycleTimeHours: calculated.meanPrCycleTimeHours,
+			prRejectionRate: calculated.prRejectionRate,
+			linesAdded: calculated.linesAdded,
+			linesDeleted: calculated.linesDeleted,
+			netLines: calculated.netLines,
+			productivityScore: calculated.productivityScore,
+			counts: calculated.counts,
 		})
-	}
-
-	private calculateProductivityScore(params: {
-		meanCommitsPerWeek: number
-		closedPrs: number
-		reviews: number
-		meanPrCycleTimeHours: number | null
-	}) {
-		const commitScore = this.clamp(params.meanCommitsPerWeek / 20)
-		const prThroughputScore = this.clamp(params.closedPrs / 10)
-		const reviewScore = this.clamp(params.reviews / 20)
-		const cycleTimeScore =
-			params.meanPrCycleTimeHours === null
-				? 0.5
-				: this.clamp(1 - params.meanPrCycleTimeHours / (24 * 7))
-
-		const score =
-			0.3 * commitScore + 0.3 * prThroughputScore + 0.2 * reviewScore + 0.2 * cycleTimeScore
-
-		return Math.round(score * 100)
-	}
-
-	private clamp(value: number) {
-		return Math.max(0, Math.min(1, value))
 	}
 }

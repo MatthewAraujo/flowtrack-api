@@ -14,6 +14,7 @@ export const envSchema = z.object({
 	GITHUB_OAUTH_UI_REDIRECT_URL: z.string().url(),
 	CORS_ORIGINS: z.string().optional(),
 	TOKEN_ENCRYPTION_KEY: z.string(),
+	PROFILE_SYNC_DAYS: z.coerce.number().optional().default(90),
 })
 
 export type Env = z.infer<typeof envSchema>

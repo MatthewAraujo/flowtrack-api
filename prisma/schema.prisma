@@ -112,7 +112,7 @@ model PullRequestEvent {
   id           String   @id
   repositoryId String
   number       Int
-  githubId     Int
+  githubId     BigInt
   title        String
   state        String
   isMerged     Boolean
@@ -137,7 +137,7 @@ model ReviewEvent {
   id           String   @id
   repositoryId String
   pullNumber   Int
-  githubId     Int
+  githubId     BigInt
   reviewerLogin String?
   state        String
   submittedAt  DateTime

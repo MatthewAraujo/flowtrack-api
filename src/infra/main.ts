@@ -15,6 +15,35 @@ async function bootstrap() {
 
 	const configService = app.get(EnvService)
 	const port = configService.get('PORT')
+	const uiRedirectUrl = configService.get('GITHUB_OAUTH_UI_REDIRECT_URL')
+	const corsOriginsRaw = configService.get('CORS_ORIGINS')
+	const defaultOrigins = new Set<string>([
+		new URL(uiRedirectUrl).origin,
+		'http://localhost:3000',
+	])
+	const allowedOrigins = new Set(defaultOrigins)
+	if (corsOriginsRaw) {
+		const extraOrigins = corsOriginsRaw
+			.split(',')
+			.map((origin) => origin.trim())
+			.filter(Boolean)
+		for (const origin of extraOrigins) {
+			allowedOrigins.add(origin)
+		}
+	}
+
+	app.enableCors({
+		origin: (origin, callback) => {
+			if (!origin) {
+				return callback(null, true)
+			}
+			if (allowedOrigins.has(origin)) {
+				return callback(null, true)
+			}
+			return callback(new Error(`CORS blocked for origin: ${origin}`), false)
+		},
+		credentials: true,
+	})
 
 	// Configure JSON parser to preserve raw body for webhook signature verification
 	app.use(

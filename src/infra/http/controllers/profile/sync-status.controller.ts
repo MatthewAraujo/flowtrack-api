@@ -15,15 +15,10 @@ export class ProfileSyncStatusController {
 		})
 
 		const lastDaily = githubAccount?.lastDailySyncAt ?? null
-		const lastManual = githubAccount?.lastManualSyncAt ?? null
-		const lastSyncTime = Math.max(
-			lastDaily ? lastDaily.getTime() : 0,
-			lastManual ? lastManual.getTime() : 0,
-		)
-
-		const lastSync = lastSyncTime > 0 ? new Date(lastSyncTime).toISOString() : null
-		const nextAllowed =
-			lastSyncTime > 0 ? new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString() : null
+		const lastSync = lastDaily ? lastDaily.toISOString() : null
+		const nextAllowed = lastDaily
+			? new Date(lastDaily.getTime() + 24 * 60 * 60 * 1000).toISOString()
+			: null
 
 		return {
 			last_synced_at: lastSync,

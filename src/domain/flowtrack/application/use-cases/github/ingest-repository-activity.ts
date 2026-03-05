@@ -10,6 +10,8 @@ type IngestionParams = {
 	repo: string
 	from: Date
 	to: Date
+	prUpdatedSince?: Date | null
+	reviewSubmittedSince?: Date | null
 	exhaustivePulls?: boolean
 	useSearchPulls?: boolean
 }
@@ -22,13 +24,28 @@ export class IngestRepositoryActivityUseCase {
 	) {}
 
 	async execute(params: IngestionParams) {
-		const { token, repositoryId, owner, repo, from, to, exhaustivePulls, useSearchPulls } = params
+		const {
+			token,
+			repositoryId,
+			owner,
+			repo,
+			from,
+			to,
+			prUpdatedSince,
+			reviewSubmittedSince,
+			exhaustivePulls,
+			useSearchPulls,
+		} = params
 
 		const commits = await this.githubService.listCommits(token, owner, repo, from, to)
 		const pulls = await this.githubService.listPullRequests(token, owner, repo, from, to, {
 			exhaustive: exhaustivePulls,
 			useSearch: useSearchPulls,
 		})
+
+		const filteredPulls = prUpdatedSince
+			? pulls.filter((pull) => new Date(pull.updated_at).getTime() > prUpdatedSince.getTime())
+			: pulls
 
 		let commitsUpserted = 0
 		for (const commit of commits) {
@@ -61,7 +78,7 @@ export class IngestRepositoryActivityUseCase {
 		let pullsUpserted = 0
 		let reviewsUpserted = 0
 
-		for (const pull of pulls) {
+		for (const pull of filteredPulls) {
 			const details = await this.githubService.getPullDetails(token, owner, repo, pull.number)
 
 			await this.prisma.pullRequestEvent.upsert({
@@ -110,6 +127,13 @@ export class IngestRepositoryActivityUseCase {
 			for (const review of reviews) {
 				if (!review.submitted_at) {
 					continue
+				}
+
+				if (reviewSubmittedSince) {
+					const submittedAt = new Date(review.submitted_at)
+					if (submittedAt.getTime() <= reviewSubmittedSince.getTime()) {
+						continue
+					}
 				}
 
 				await this.prisma.reviewEvent.upsert({

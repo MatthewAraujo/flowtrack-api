@@ -24,6 +24,7 @@ model User {
   repoAccess        UserRepositoryAccess[]
   githubAccounts    GitHubAccount[]
   userRoles         UserRole[]
+  syncJobs          SyncJob[]
 }
 
 model Role {
@@ -74,6 +75,11 @@ model Repository {
   defaultBranch  String?
   lastProviderUpdatedAt DateTime?
   lastSyncedAt DateTime?
+  lastCommitSyncedAt DateTime?
+  lastPrUpdatedAt DateTime?
+  lastReviewSyncedAt DateTime?
+  fullBackfillCompleted Boolean @default(false)
+  syncLockUntil DateTime?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
   access         UserRepositoryAccess[]
@@ -83,6 +89,22 @@ model Repository {
   metricSnapshots MetricSnapshot[]
 
   @@unique([provider, providerRepoId])
+}
+
+model SyncJob {
+  id         String   @id
+  userId     String
+  kind       String
+  status     String
+  startedAt  DateTime
+  finishedAt DateTime?
+  error      String?
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, status])
+  @@index([createdAt])
 }
 
 model UserRepositoryAccess {

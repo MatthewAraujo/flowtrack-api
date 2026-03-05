@@ -5,7 +5,7 @@ import { IngestRepositoryActivityUseCase } from '../github/ingest-repository-act
 import { GitHubService } from '@/infra/github/github.service'
 import { UniqueEntityID } from '@/core/entities/unique-entity-id'
 
-type SyncKind = 'FULL' | 'DAILY' | 'MANUAL'
+type SyncKind = 'FULL' | 'DAILY'
 
 type SyncResult = {
 	repositories: number
@@ -37,6 +37,14 @@ export class SyncProfileDataUseCase {
 		const to = new Date()
 		const from = new Date('2008-01-01T00:00:00.000Z')
 		return { from, to }
+	}
+
+	private buildIncrementalWindow(from: Date | null | undefined, to: Date) {
+		if (from) {
+			const start = new Date(from.getTime() + 1)
+			return { from: start, to }
+		}
+		return { from: new Date('2008-01-01T00:00:00.000Z'), to }
 	}
 
 	private maxDate(values: Array<Date | null | undefined>) {
@@ -77,6 +85,11 @@ export class SyncProfileDataUseCase {
 			name: string
 			shouldSync: boolean
 			lastSyncedAt: Date | null
+			lastCommitSyncedAt: Date | null
+			lastPrUpdatedAt: Date | null
+			lastReviewSyncedAt: Date | null
+			fullBackfillCompleted: boolean
+			syncLockUntil: Date | null
 		}> = []
 
 		for (const repo of repos) {
@@ -88,9 +101,18 @@ export class SyncProfileDataUseCase {
 						providerRepoId: repo.id.toString(),
 					},
 				},
-				select: { lastProviderUpdatedAt: true, lastSyncedAt: true },
+				select: {
+					lastProviderUpdatedAt: true,
+					lastSyncedAt: true,
+					lastCommitSyncedAt: true,
+					lastPrUpdatedAt: true,
+					lastReviewSyncedAt: true,
+					fullBackfillCompleted: true,
+					syncLockUntil: true,
+				},
 			})
 			const lastSyncedAt = existing?.lastSyncedAt ?? null
+			const fullBackfillCompleted = existing?.fullBackfillCompleted ?? false
 			const shouldSync = !lastSyncedAt || providerUpdatedAt.getTime() > lastSyncedAt.getTime()
 
 			const stored = await this.prisma.repository.upsert({
@@ -142,6 +164,11 @@ export class SyncProfileDataUseCase {
 				name: stored.name,
 				shouldSync,
 				lastSyncedAt,
+				lastCommitSyncedAt: existing?.lastCommitSyncedAt ?? null,
+				lastPrUpdatedAt: existing?.lastPrUpdatedAt ?? null,
+				lastReviewSyncedAt: existing?.lastReviewSyncedAt ?? null,
+				fullBackfillCompleted,
+				syncLockUntil: existing?.syncLockUntil ?? null,
 			})
 		}
 
@@ -169,10 +196,7 @@ export class SyncProfileDataUseCase {
 		const requestedKind: SyncKind = options?.kind ?? 'DAILY'
 		const shouldForceFull = !githubAccount.lastFullSyncAt
 		const kind: SyncKind = shouldForceFull ? 'FULL' : requestedKind
-		const lastSync = this.maxDate([
-			githubAccount.lastDailySyncAt,
-			githubAccount.lastManualSyncAt,
-		])
+		const lastSync = this.maxDate([githubAccount.lastDailySyncAt])
 
 		if (kind !== 'FULL' && lastSync) {
 			const lastSyncTime = lastSync.getTime()
@@ -189,6 +213,7 @@ export class SyncProfileDataUseCase {
 
 		const token = await this.tokenCipher.decrypt(githubAccount.accessToken)
 		const repositories = await this.syncRepositories(token, userId)
+		const now = new Date()
 		const { from, to } = kind === 'FULL' ? this.buildFullWindow() : this.buildWindow(1)
 		const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)))
 		const maxDurationMs = kind === 'FULL' ? 5 * 60 * 1000 : null
@@ -200,22 +225,49 @@ export class SyncProfileDataUseCase {
 		let reviewsUpserted = 0
 
 		for (const repo of repositories) {
-			if (!repo.shouldSync) {
+			const isLocked = repo.syncLockUntil ? repo.syncLockUntil.getTime() > now.getTime() : false
+			if (isLocked) {
+				continue
+			}
+
+			const forceFull = kind === 'FULL' && !repo.fullBackfillCompleted
+			if (!forceFull && !repo.shouldSync) {
 				continue
 			}
 			if (maxDurationMs !== null && Date.now() - syncStart > maxDurationMs) {
 				completedAll = false
 				break
 			}
+
+			const lockUntil = new Date(Date.now() + 15 * 60 * 1000)
+			await this.prisma.repository.update({
+				where: { id: repo.id },
+				data: { syncLockUntil: lockUntil },
+			})
+
+			const commitWindow = forceFull
+				? this.buildFullWindow()
+				: this.buildIncrementalWindow(repo.lastCommitSyncedAt, now)
+			const prWindow = forceFull
+				? this.buildFullWindow()
+				: this.buildIncrementalWindow(repo.lastPrUpdatedAt, now)
+			const reviewWindow = forceFull
+				? this.buildFullWindow()
+				: this.buildIncrementalWindow(repo.lastReviewSyncedAt, now)
+			const startFrom = new Date(
+				Math.min(commitWindow.from.getTime(), prWindow.from.getTime(), reviewWindow.from.getTime()),
+			)
 			const result = await this.ingestion.execute({
 				token,
 				repositoryId: repo.id,
 				owner: repo.ownerLogin,
 				repo: repo.name,
-				from,
-				to,
-				exhaustivePulls: kind === 'FULL',
-				useSearchPulls: kind !== 'FULL',
+				from: startFrom,
+				to: now,
+				prUpdatedSince: forceFull ? null : repo.lastPrUpdatedAt,
+				reviewSubmittedSince: forceFull ? null : repo.lastReviewSyncedAt,
+				exhaustivePulls: forceFull,
+				useSearchPulls: !forceFull,
 			})
 
 			commitsUpserted += result.commitsUpserted
@@ -224,7 +276,14 @@ export class SyncProfileDataUseCase {
 
 			await this.prisma.repository.update({
 				where: { id: repo.id },
-				data: { lastSyncedAt: to },
+				data: {
+					lastSyncedAt: now,
+					lastCommitSyncedAt: now,
+					lastPrUpdatedAt: now,
+					lastReviewSyncedAt: now,
+					fullBackfillCompleted: repo.fullBackfillCompleted || forceFull,
+					syncLockUntil: null,
+				},
 			})
 		}
 
@@ -234,9 +293,7 @@ export class SyncProfileDataUseCase {
 				? completedAll
 					? { lastFullSyncAt: syncedAt }
 					: null
-				: kind === 'MANUAL'
-					? { lastManualSyncAt: syncedAt }
-					: { lastDailySyncAt: syncedAt }
+				: { lastDailySyncAt: syncedAt }
 
 		if (updateData) {
 			await this.prisma.gitHubAccount.update({

@@ -32,7 +32,6 @@ import { RepoCommitsController } from './controllers/metrics/repo-commits.contro
 import { RepoMetricsController } from './controllers/metrics/repo-metrics.controller'
 import { RepoPullsController } from './controllers/metrics/repo-pulls.controller'
 import { ProfileSummaryController } from './controllers/profile/summary.controller'
-import { ProfileSyncController } from './controllers/profile/sync.controller'
 import { ProfileSyncStatusController } from './controllers/profile/sync-status.controller'
 import { ProfileTrendsController } from './controllers/profile/trends.controller'
 import { ListReposController } from './controllers/repos/list-repos.controller'
@@ -59,7 +58,6 @@ import { UseCaseResultInterceptor } from './interceptors/use-case-result.interce
 		DashboardSummaryController,
 		ProfileSummaryController,
 		ProfileTrendsController,
-		ProfileSyncController,
 		ProfileSyncStatusController,
 		HealthController,
 	],

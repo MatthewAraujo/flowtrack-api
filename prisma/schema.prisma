@@ -25,6 +25,10 @@ model User {
   githubAccounts    GitHubAccount[]
   userRoles         UserRole[]
   syncJobs          SyncJob[]
+  workspacesCreated Workspace[] @relation("WorkspaceCreator")
+  workspaceMemberships WorkspaceMember[]
+  workspaceInvitesCreated WorkspaceInvite[] @relation("WorkspaceInviteCreator")
+  workspaceInvitesUsed WorkspaceInvite[] @relation("WorkspaceInviteUsedBy")
 }
 
 model Role {
@@ -43,6 +47,54 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@index([roleId])
+}
+
+model Workspace {
+  id        String   @id
+  name      String
+  createdBy String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  creator User @relation("WorkspaceCreator", fields: [createdBy], references: [id])
+  members WorkspaceMember[]
+  invites WorkspaceInvite[]
+
+  @@index([createdBy])
+}
+
+model WorkspaceMember {
+  id          String   @id
+  workspaceId String
+  userId      String
+  role        String
+  status      String
+  joinedAt    DateTime
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  user      User      @relation(fields: [userId], references: [id])
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+}
+
+model WorkspaceInvite {
+  id           String   @id
+  workspaceId  String
+  email        String
+  role         String
+  tokenHash    String
+  createdBy    String
+  expiresAt    DateTime
+  acceptedAt   DateTime?
+  usedByUserId String?
+
+  workspace  Workspace @relation(fields: [workspaceId], references: [id])
+  creator    User      @relation("WorkspaceInviteCreator", fields: [createdBy], references: [id])
+  usedByUser User?     @relation("WorkspaceInviteUsedBy", fields: [usedByUserId], references: [id])
+
+  @@index([workspaceId])
+  @@index([tokenHash, expiresAt])
 }
 
 model GitHubAccount {

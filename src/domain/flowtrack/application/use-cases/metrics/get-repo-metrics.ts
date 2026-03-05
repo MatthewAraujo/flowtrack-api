@@ -3,9 +3,7 @@ import { NotAllowedError } from '@/core/errors/errors/not-allowed-error'
 import { RepoMetrics } from '@/domain/flowtrack/enterprise/entities/value-objects/repo-metrics'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
-import { TokenCipher } from '../../cryptography/token-cipher'
 import { NotFoundError } from '../errors/not-found-error'
-import { IngestRepositoryActivityUseCase } from '../github/ingest-repository-activity'
 import { GetMetricsForReposUseCase } from './get-metrics-for-repos'
 
 interface GetRepoMetricsUseCaseRequest {
@@ -21,8 +19,6 @@ type GetRepoMetricsUseCaseResponse = Either<NotAllowedError | NotFoundError, Rep
 export class GetRepoMetricsUseCase {
 	constructor(
 		private prisma: PrismaService,
-		private tokenCipher: TokenCipher,
-		private ingestion: IngestRepositoryActivityUseCase,
 		private metrics: GetMetricsForReposUseCase,
 	) {}
 
@@ -52,26 +48,6 @@ export class GetRepoMetricsUseCase {
 		if (!repository) {
 			return left(new NotFoundError(repoId, 'Repository'))
 		}
-
-		const githubAccount = await this.prisma.gitHubAccount.findFirst({
-			where: { userId, provider: 'github' },
-		})
-
-		if (!githubAccount?.accessToken) {
-			return left(new NotFoundError('token', 'GitHub account'))
-		}
-
-		const token = await this.tokenCipher.decrypt(githubAccount.accessToken)
-		const { from, to } = this.metrics.getWindowRange(window)
-
-		await this.ingestion.execute({
-			token,
-			repositoryId: repository.id,
-			owner: repository.ownerLogin,
-			repo: repository.name,
-			from,
-			to,
-		})
 
 		const metrics = await this.metrics.execute([repository.id], window, { refresh })
 

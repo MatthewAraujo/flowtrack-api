@@ -1,30 +1,33 @@
-import { CacheRepository } from '@/infra/cache/cache-repository'
 import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
 import { Controller, Get } from '@nestjs/common'
-import { EnvService } from '@/infra/env/env.service'
+import { PrismaService } from '@/infra/database/prisma/prisma.service'
 
 @Controller('/profile/sync/status')
 @Roles('ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER')
 export class ProfileSyncStatusController {
-	constructor(
-		private cacheRepository: CacheRepository,
-		private envService: EnvService,
-	) {}
+	constructor(private prisma: PrismaService) {}
 
 	@Get()
 	async handle(@CurrentUser() user: { sub: string }) {
-		const lastSync = await this.cacheRepository.get<string>(`profile:last_sync:${user.sub}`)
-		const days = Number(this.envService.get('PROFILE_SYNC_DAYS'))
-		const lastSyncTime = lastSync ? new Date(lastSync).getTime() : null
+		const githubAccount = await this.prisma.gitHubAccount.findFirst({
+			where: { userId: user.sub, provider: 'github' },
+		})
+
+		const lastDaily = githubAccount?.lastDailySyncAt ?? null
+		const lastManual = githubAccount?.lastManualSyncAt ?? null
+		const lastSyncTime = Math.max(
+			lastDaily ? lastDaily.getTime() : 0,
+			lastManual ? lastManual.getTime() : 0,
+		)
+
+		const lastSync = lastSyncTime > 0 ? new Date(lastSyncTime).toISOString() : null
 		const nextAllowed =
-			lastSyncTime && Number.isFinite(lastSyncTime)
-				? new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString()
-				: null
+			lastSyncTime > 0 ? new Date(lastSyncTime + 24 * 60 * 60 * 1000).toISOString() : null
 
 		return {
 			last_synced_at: lastSync,
-			window_days: days,
+			window_days: 1,
 			next_sync_at: nextAllowed,
 		}
 	}

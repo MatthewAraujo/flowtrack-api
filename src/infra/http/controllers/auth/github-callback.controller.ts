@@ -3,9 +3,6 @@ import { GithubCallbackUseCase } from '@/domain/flowtrack/application/use-cases/
 import { Public } from '@/infra/auth/public'
 import { EnvService } from '@/infra/env/env.service'
 import { BadRequestException, Controller, Get, Query, Redirect, Logger } from '@nestjs/common'
-import { ListReposUseCase } from '@/domain/flowtrack/application/use-cases/repos/list-repos'
-import { SyncProfileDataUseCase } from '@/domain/flowtrack/application/use-cases/profile/sync-profile-data'
-import { PrismaService } from '@/infra/database/prisma/prisma.service'
 
 @Controller('/auth/github')
 @Public()
@@ -15,9 +12,6 @@ export class GithubCallbackController {
 	constructor(
 		private envService: EnvService,
 		private githubCallback: GithubCallbackUseCase,
-		private listRepos: ListReposUseCase,
-		private syncProfileData: SyncProfileDataUseCase,
-		private prisma: PrismaService,
 	) {}
 
 	@Get('/callback')
@@ -40,29 +34,7 @@ export class GithubCallbackController {
 
 		const { accessToken, userId } = result.value
 
-		// Fire-and-forget repo sync; do not block redirect.
-		void this.listRepos
-			.execute({ userId })
-			.catch((error) => this.logger.warn(`Repo sync failed for user ${userId}: ${error?.message ?? error}`))
-
-		void this.prisma.gitHubAccount
-			.findFirst({ where: { userId, provider: 'github' } })
-			.then((account) => {
-				if (!account || account.lastFullSyncAt) {
-					return
-				}
-				return this.syncProfileData
-					.execute(userId, { fullHistory: true, force: true })
-					.then(() =>
-						this.prisma.gitHubAccount.update({
-							where: { id: account.id },
-							data: { lastFullSyncAt: new Date() },
-						}),
-					)
-			})
-			.catch((error) =>
-				this.logger.warn(`Full history sync failed for user ${userId}: ${error?.message ?? error}`),
-			)
+		this.logger.log(`OAuth completed for user ${userId}; full sync scheduled asynchronously.`)
 		const uiCallback = this.envService.get('GITHUB_OAUTH_UI_REDIRECT_URL')
 		return {
 			url: `${uiCallback}?token=${accessToken}`,

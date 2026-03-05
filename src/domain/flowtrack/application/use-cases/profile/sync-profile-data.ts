@@ -2,8 +2,10 @@ import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
 import { TokenCipher } from '../../cryptography/token-cipher'
 import { IngestRepositoryActivityUseCase } from '../github/ingest-repository-activity'
-import { EnvService } from '@/infra/env/env.service'
-import { CacheRepository } from '@/infra/cache/cache-repository'
+import { GitHubService } from '@/infra/github/github.service'
+import { UniqueEntityID } from '@/core/entities/unique-entity-id'
+
+type SyncKind = 'FULL' | 'DAILY' | 'MANUAL'
 
 type SyncResult = {
 	repositories: number
@@ -12,6 +14,8 @@ type SyncResult = {
 	reviewsUpserted: number
 	syncedAt: string
 	days: number
+	status: 'performed' | 'skipped'
+	nextAllowedAt: string | null
 }
 
 @Injectable()
@@ -20,9 +24,8 @@ export class SyncProfileDataUseCase {
 		private prisma: PrismaService,
 		private tokenCipher: TokenCipher,
 		private ingestion: IngestRepositoryActivityUseCase,
-		private envService: EnvService,
-		private cacheRepository: CacheRepository,
-	) {}
+		private githubService: GitHubService,
+	) { }
 
 	private buildWindow(days: number) {
 		const to = new Date()
@@ -36,9 +39,95 @@ export class SyncProfileDataUseCase {
 		return { from, to }
 	}
 
+	private maxDate(values: Array<Date | null | undefined>) {
+		const valid = values.filter((value): value is Date => Boolean(value))
+		if (valid.length === 0) {
+			return null
+		}
+		return new Date(Math.max(...valid.map((value) => value.getTime())))
+	}
+
+	private buildSyncResult(params: {
+		repositories?: number
+		commitsUpserted?: number
+		pullsUpserted?: number
+		reviewsUpserted?: number
+		syncedAt: string
+		days: number
+		status: 'performed' | 'skipped'
+		nextAllowedAt: string | null
+	}): SyncResult {
+		return {
+			repositories: params.repositories ?? 0,
+			commitsUpserted: params.commitsUpserted ?? 0,
+			pullsUpserted: params.pullsUpserted ?? 0,
+			reviewsUpserted: params.reviewsUpserted ?? 0,
+			syncedAt: params.syncedAt,
+			days: params.days,
+			status: params.status,
+			nextAllowedAt: params.nextAllowedAt,
+		}
+	}
+
+	private async syncRepositories(token: string, userId: string) {
+		const repos = await this.githubService.listRepositories(token)
+		const results: Array<{ id: string; ownerLogin: string; name: string }> = []
+
+		for (const repo of repos) {
+			const stored = await this.prisma.repository.upsert({
+				where: {
+					provider_providerRepoId: {
+						provider: 'github',
+						providerRepoId: repo.id.toString(),
+					},
+				},
+				update: {
+					name: repo.name,
+					fullName: repo.full_name,
+					isPrivate: repo.private,
+					ownerLogin: repo.owner.login,
+					defaultBranch: repo.default_branch ?? null,
+				},
+				create: {
+					id: new UniqueEntityID().toString(),
+					provider: 'github',
+					providerRepoId: repo.id.toString(),
+					name: repo.name,
+					fullName: repo.full_name,
+					isPrivate: repo.private,
+					ownerLogin: repo.owner.login,
+					defaultBranch: repo.default_branch ?? null,
+				},
+			})
+
+			await this.prisma.userRepositoryAccess.upsert({
+				where: {
+					userId_repositoryId: {
+						userId,
+						repositoryId: stored.id,
+					},
+				},
+				update: {},
+				create: {
+					id: new UniqueEntityID().toString(),
+					userId,
+					repositoryId: stored.id,
+				},
+			})
+
+			results.push({
+				id: stored.id,
+				ownerLogin: stored.ownerLogin,
+				name: stored.name,
+			})
+		}
+
+		return results
+	}
+
 	async execute(
 		userId: string,
-		options?: { days?: number; fullHistory?: boolean; force?: boolean },
+		options?: { kind?: SyncKind },
 	): Promise<SyncResult> {
 		const githubAccount = await this.prisma.gitHubAccount.findFirst({
 			where: { userId, provider: 'github' },
@@ -46,54 +135,37 @@ export class SyncProfileDataUseCase {
 
 		if (!githubAccount?.accessToken) {
 			const syncedAt = new Date().toISOString()
-			const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
-			const days = options?.days ?? defaultDays
-			return {
-				repositories: 0,
-				commitsUpserted: 0,
-				pullsUpserted: 0,
-				reviewsUpserted: 0,
+			return this.buildSyncResult({
 				syncedAt,
-				days,
-			}
+				days: 1,
+				status: 'skipped',
+				nextAllowedAt: null,
+			})
 		}
 
-		if (!options?.force) {
-			const lastSync = await this.cacheRepository.get<string>(`profile:last_sync:${userId}`)
-			if (lastSync) {
-				const lastSyncTime = new Date(lastSync).getTime()
-				if (Number.isFinite(lastSyncTime)) {
-					const nextAllowed = lastSyncTime + 24 * 60 * 60 * 1000
-					if (Date.now() < nextAllowed) {
-						const syncedAt = new Date().toISOString()
-						const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
-						const days = options?.days ?? defaultDays
-						return {
-							repositories: 0,
-							commitsUpserted: 0,
-							pullsUpserted: 0,
-							reviewsUpserted: 0,
-							syncedAt,
-							days,
-						}
-					}
-				}
+		const kind: SyncKind = options?.kind ?? 'DAILY'
+		const lastSync = this.maxDate([
+			githubAccount.lastDailySyncAt,
+			githubAccount.lastManualSyncAt,
+		])
+
+		if (kind !== 'FULL' && lastSync) {
+			const lastSyncTime = lastSync.getTime()
+			const nextAllowed = lastSyncTime + 24 * 60 * 60 * 1000
+			if (Date.now() < nextAllowed) {
+				return this.buildSyncResult({
+					syncedAt: lastSync.toISOString(),
+					days: 1,
+					status: 'skipped',
+					nextAllowedAt: new Date(nextAllowed).toISOString(),
+				})
 			}
 		}
 
 		const token = await this.tokenCipher.decrypt(githubAccount.accessToken)
-		const access = await this.prisma.userRepositoryAccess.findMany({
-			where: { userId },
-			include: { repository: true },
-		})
-
-		const repositories = access
-			.map((entry) => entry.repository)
-			.filter((repo): repo is NonNullable<typeof repo> => Boolean(repo))
-
-		const defaultDays = Number(this.envService.get('PROFILE_SYNC_DAYS'))
-		const days = options?.days ?? defaultDays
-		const { from, to } = options?.fullHistory ? this.buildFullWindow() : this.buildWindow(days)
+		const repositories = await this.syncRepositories(token, userId)
+		const { from, to } = kind === 'FULL' ? this.buildFullWindow() : this.buildWindow(1)
+		const days = Math.max(1, Math.ceil((to.getTime() - from.getTime()) / (24 * 60 * 60 * 1000)))
 
 		let commitsUpserted = 0
 		let pullsUpserted = 0
@@ -114,16 +186,28 @@ export class SyncProfileDataUseCase {
 			reviewsUpserted += result.reviewsUpserted
 		}
 
-		const syncedAt = new Date().toISOString()
-		await this.cacheRepository.set(`profile:last_sync:${userId}`, syncedAt, 60 * 60 * 24 * 30)
+		const syncedAt = new Date()
+		const updateData =
+			kind === 'FULL'
+				? { lastFullSyncAt: syncedAt }
+				: kind === 'MANUAL'
+					? { lastManualSyncAt: syncedAt }
+					: { lastDailySyncAt: syncedAt }
 
-		return {
+		await this.prisma.gitHubAccount.update({
+			where: { id: githubAccount.id },
+			data: updateData,
+		})
+
+		return this.buildSyncResult({
 			repositories: repositories.length,
 			commitsUpserted,
 			pullsUpserted,
 			reviewsUpserted,
-			syncedAt,
+			syncedAt: syncedAt.toISOString(),
 			days,
-		}
+			status: 'performed',
+			nextAllowedAt: null,
+		})
 	}
 }

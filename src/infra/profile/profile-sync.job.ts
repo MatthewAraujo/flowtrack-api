@@ -5,8 +5,8 @@ import { SyncProfileDataUseCase } from '@/domain/flowtrack/application/use-cases
 import { EnvService } from '@/infra/env/env.service'
 
 @Injectable()
-export class ProfileSyncJob {
-	private readonly logger = new Logger(ProfileSyncJob.name)
+export class ProfileSyncCronService {
+	private readonly logger = new Logger(ProfileSyncCronService.name)
 
 	constructor(
 		private prisma: PrismaService,

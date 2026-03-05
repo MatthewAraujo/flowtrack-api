@@ -12,7 +12,7 @@ export class ProfileSyncJob {
 		private prisma: PrismaService,
 		private syncProfileData: SyncProfileDataUseCase,
 		private envService: EnvService,
-	) {}
+	) { }
 
 	@Cron('0 3 * * *')
 	async handleDailySync() {

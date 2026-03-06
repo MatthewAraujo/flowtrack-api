@@ -11,7 +11,10 @@ import { WorkspaceRolesGuard } from './workspace-roles.guard'
 			provide: APP_GUARD,
 			useClass: RolesGuard,
 		},
-		WorkspaceRolesGuard,
+		{
+			provide: APP_GUARD,
+			useClass: WorkspaceRolesGuard,
+		},
 	],
 	exports: [WorkspaceRolesGuard],
 })

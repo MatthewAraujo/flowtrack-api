@@ -36,12 +36,41 @@ export class WorkspacesService {
 			orderBy: {
 				createdAt: 'desc',
 			},
+			include: {
+				members: {
+					where: { userId },
+					select: {
+						role: true,
+						status: true,
+					},
+				},
+			},
 		})
 	}
 
 	async findById(workspaceId: string) {
 		return this.prisma.workspace.findUnique({
 			where: { id: workspaceId },
+		})
+	}
+
+	async getWithMembers(workspaceId: string) {
+		return this.prisma.workspace.findUnique({
+			where: { id: workspaceId },
+			include: {
+				members: {
+					orderBy: { joinedAt: 'asc' },
+					include: {
+						user: {
+							select: {
+								id: true,
+								name: true,
+								email: true,
+							},
+						},
+					},
+				},
+			},
 		})
 	}
 

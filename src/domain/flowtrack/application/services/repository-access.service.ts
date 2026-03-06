@@ -42,4 +42,19 @@ export class RepositoryAccessService {
 
 		return new Set(access.map((entry) => entry.repositoryId))
 	}
+
+	async listRepositoryIdsForUsers(userIds: string[]): Promise<string[]> {
+		if (userIds.length === 0) {
+			return []
+		}
+
+		const access = await this.prisma.userRepositoryAccess.findMany({
+			where: {
+				userId: { in: userIds },
+			},
+			select: { repositoryId: true },
+		})
+
+		return Array.from(new Set(access.map((entry) => entry.repositoryId)))
+	}
 }

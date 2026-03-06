@@ -22,12 +22,14 @@ import { DatabaseModule } from '../database/database.module'
 import { EnvModule } from '../env/env.module'
 import { GitHubModule } from '../github/github.module'
 import { StorageModule } from '../storage/storage.module'
+import { WorkspacesModule } from '../workspaces/workspaces.module'
 import { AuthenticateController } from './controllers/auth/authenticate.controller'
 import { CreateAccountController } from './controllers/auth/create-account.controller'
 import { GithubCallbackController } from './controllers/auth/github-callback.controller'
 import { GithubLoginController } from './controllers/auth/github-login.controller'
 import { DashboardSummaryController } from './controllers/dashboard/summary.controller'
 import { HealthController } from './controllers/health.controller'
+import { AcceptWorkspaceInviteController } from './controllers/invites/accept-workspace-invite.controller'
 import { RepoCommitsController } from './controllers/metrics/repo-commits.controller'
 import { RepoMetricsController } from './controllers/metrics/repo-metrics.controller'
 import { RepoPullsController } from './controllers/metrics/repo-pulls.controller'
@@ -35,6 +37,14 @@ import { ProfileSummaryController } from './controllers/profile/summary.controll
 import { ProfileSyncStatusController } from './controllers/profile/sync-status.controller'
 import { ProfileTrendsController } from './controllers/profile/trends.controller'
 import { ListReposController } from './controllers/repos/list-repos.controller'
+import { CreateWorkspaceInviteController } from './controllers/workspaces/create-workspace-invite.controller'
+import { CreateWorkspaceController } from './controllers/workspaces/create-workspace.controller'
+import { GetWorkspaceController } from './controllers/workspaces/get-workspace.controller'
+import { ListWorkspaceMembersController } from './controllers/workspaces/list-workspace-members.controller'
+import { ListWorkspacesController } from './controllers/workspaces/list-workspaces.controller'
+import { RemoveWorkspaceMemberController } from './controllers/workspaces/remove-workspace-member.controller'
+import { UpdateWorkspaceMemberController } from './controllers/workspaces/update-workspace-member.controller'
+import { WorkspaceDashboardController } from './controllers/workspaces/workspace-dashboard.controller'
 import { UseCaseResultInterceptor } from './interceptors/use-case-result.interceptor'
 
 @Module({
@@ -45,6 +55,7 @@ import { UseCaseResultInterceptor } from './interceptors/use-case-result.interce
 		EnvModule,
 		CacheModule,
 		GitHubModule,
+		WorkspacesModule,
 	],
 	controllers: [
 		CreateAccountController,
@@ -60,6 +71,15 @@ import { UseCaseResultInterceptor } from './interceptors/use-case-result.interce
 		ProfileTrendsController,
 		ProfileSyncStatusController,
 		HealthController,
+		CreateWorkspaceController,
+		ListWorkspacesController,
+		GetWorkspaceController,
+		CreateWorkspaceInviteController,
+		AcceptWorkspaceInviteController,
+		ListWorkspaceMembersController,
+		UpdateWorkspaceMemberController,
+		RemoveWorkspaceMemberController,
+		WorkspaceDashboardController,
 	],
 	providers: [
 		{

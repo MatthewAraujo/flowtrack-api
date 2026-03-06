@@ -1,5 +1,15 @@
+import { randomUUID } from 'node:crypto'
+
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
+
+interface AddWorkspaceMemberInput {
+	workspaceId: string
+	userId: string
+	role: string
+	status: string
+	joinedAt: Date
+}
 
 @Injectable()
 export class WorkspaceMembersService {
@@ -9,6 +19,22 @@ export class WorkspaceMembersService {
 		return this.prisma.workspaceMember.findMany({
 			where: { workspaceId },
 			orderBy: { joinedAt: 'asc' },
+		})
+	}
+
+	async listMembersDetailed(workspaceId: string) {
+		return this.prisma.workspaceMember.findMany({
+			where: { workspaceId },
+			orderBy: { joinedAt: 'asc' },
+			include: {
+				user: {
+					select: {
+						id: true,
+						name: true,
+						email: true,
+					},
+				},
+			},
 		})
 	}
 
@@ -24,6 +50,30 @@ export class WorkspaceMembersService {
 		})
 
 		return member?.role ?? null
+	}
+
+	async addMember({ workspaceId, userId, role, status, joinedAt }: AddWorkspaceMemberInput) {
+		return this.prisma.workspaceMember.upsert({
+			where: {
+				workspaceId_userId: {
+					workspaceId,
+					userId,
+				},
+			},
+			update: {
+				role,
+				status,
+				joinedAt,
+			},
+			create: {
+				id: randomUUID(),
+				workspaceId,
+				userId,
+				role,
+				status,
+				joinedAt,
+			},
+		})
 	}
 
 	async updateRole(workspaceId: string, userId: string, role: string) {

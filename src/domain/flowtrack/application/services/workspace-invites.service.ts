@@ -37,29 +37,49 @@ export class WorkspaceInvitesService {
 		})
 	}
 
-	async acceptInviteByToken(tokenHash: string, userId: string) {
+	async acceptInviteByToken(tokenHash: string, userId: string, email: string) {
 		const now = new Date()
 
-		const updated = await this.prisma.workspaceInvite.updateMany({
+		const invite = await this.prisma.workspaceInvite.findFirst({
 			where: {
 				tokenHash,
+				email,
 				acceptedAt: null,
 				expiresAt: {
 					gt: now,
 				},
 			},
+		})
+
+		if (!invite) {
+			return null
+		}
+
+		await this.prisma.workspaceInvite.update({
+			where: { id: invite.id },
 			data: {
 				acceptedAt: now,
 				usedByUserId: userId,
 			},
 		})
 
-		if (updated.count === 0) {
-			return null
-		}
+		return invite
+	}
 
-		return this.prisma.workspaceInvite.findFirst({
-			where: { tokenHash },
+	async listPendingInvitesForEmail(email: string) {
+		const now = new Date()
+
+		return this.prisma.workspaceInvite.findMany({
+			where: {
+				email,
+				acceptedAt: null,
+				expiresAt: {
+					gt: now,
+				},
+			},
+			include: {
+				workspace: true,
+			},
 		})
 	}
 

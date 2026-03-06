@@ -1,6 +1,6 @@
 import { Public } from '@/infra/auth/public'
 import { EnvService } from '@/infra/env/env.service'
-import { Controller, Get, Res } from '@nestjs/common'
+import { Controller, Get, Query, Res } from '@nestjs/common'
 import type { Response } from 'express'
 
 @Controller('/auth/github')
@@ -9,7 +9,7 @@ export class GithubLoginController {
 	constructor(private envService: EnvService) {}
 
 	@Get('/login')
-	login(@Res() response: Response) {
+	login(@Res() response: Response, @Query('next') next?: string) {
 		const clientId = this.envService.get('GITHUB_CLIENT_ID')
 		const redirectUri = this.envService.get('GITHUB_OAUTH_CALLBACK_URL')
 
@@ -19,6 +19,10 @@ export class GithubLoginController {
 			scope: 'repo read:org user:email',
 			allow_signup: 'true',
 		})
+
+		if (next && next.startsWith('/') && !next.startsWith('//')) {
+			params.set('state', next)
+		}
 
 		return response.redirect(`https://github.com/login/oauth/authorize?${params.toString()}`)
 	}

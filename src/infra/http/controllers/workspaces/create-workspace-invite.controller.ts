@@ -5,7 +5,8 @@ import { WorkspaceRoles } from '@/infra/authorization/workspace-roles'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { WorkspaceInvitesService } from '@/domain/flowtrack/application/services/workspace-invites.service'
 import { RateLimitService } from '@/infra/ratelimit/rate-limit.service'
-import { Body, Controller, Param, Post, TooManyRequestsException } from '@nestjs/common'
+import { TooManyRequestsException } from '@/infra/http/exceptions/too-many-requests.exception'
+import { Body, Controller, Param, Post } from '@nestjs/common'
 import { z } from 'zod'
 
 const paramsSchema = z.object({

@@ -16,6 +16,5 @@ import { WorkspaceRolesGuard } from './workspace-roles.guard'
 			useClass: WorkspaceRolesGuard,
 		},
 	],
-	exports: [WorkspaceRolesGuard],
 })
 export class AuthorizationModule {}

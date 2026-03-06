@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { Injectable } from '@nestjs/common'
+import type { Prisma } from 'generated/prisma'
 
 export type WorkspaceAuditAction = 'MEMBER_ADDED' | 'MEMBER_REMOVED' | 'ROLE_UPDATED'
 
@@ -10,7 +11,7 @@ interface AuditLogInput {
 	actorUserId: string
 	action: WorkspaceAuditAction
 	targetUserId?: string | null
-	metadata?: Record<string, unknown> | null
+	metadata?: Prisma.InputJsonValue | null
 }
 
 @Injectable()

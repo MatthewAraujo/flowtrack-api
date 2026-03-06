@@ -1,6 +1,8 @@
 import { RepositoryLookupRepository } from '@/domain/flowtrack/application/repositories/repository-lookup-repository'
+import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 
+@Injectable()
 export class PrismaRepositoryLookupRepository implements RepositoryLookupRepository {
 	constructor(private prisma: PrismaService) {}
 

@@ -47,6 +47,7 @@ import { RemoveWorkspaceMemberController } from './controllers/workspaces/remove
 import { UpdateWorkspaceMemberController } from './controllers/workspaces/update-workspace-member.controller'
 import { WorkspaceDashboardController } from './controllers/workspaces/workspace-dashboard.controller'
 import { WorkspaceMemberDashboardController } from './controllers/workspaces/workspace-member-dashboard.controller'
+import { WorkspaceRepositoriesController } from './controllers/workspaces/workspace-repositories.controller'
 import { UseCaseResultInterceptor } from './interceptors/use-case-result.interceptor'
 
 @Module({
@@ -84,6 +85,7 @@ import { UseCaseResultInterceptor } from './interceptors/use-case-result.interce
 		RemoveWorkspaceMemberController,
 		WorkspaceDashboardController,
 		WorkspaceMemberDashboardController,
+		WorkspaceRepositoriesController,
 	],
 	providers: [
 		{

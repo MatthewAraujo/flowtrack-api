@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import { TooManyRequestsException } from '@nestjs/common'
+import { TooManyRequestsException } from '@/infra/http/exceptions/too-many-requests.exception'
 import { CreateWorkspaceInviteController } from './create-workspace-invite.controller'
 
 describe('CreateWorkspaceInviteController', () => {

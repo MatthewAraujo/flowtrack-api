@@ -2,8 +2,10 @@ import { MetricsReadRepository } from '@/domain/flowtrack/application/repositori
 import { CommitEvent } from '@/domain/flowtrack/enterprise/entities/commit-event'
 import { PullRequestEvent } from '@/domain/flowtrack/enterprise/entities/pull-request-event'
 import { toCommitEvent, toPullRequestEvent } from '@/domain/flowtrack/application/mappers/repo-event-mappers'
+import { Injectable } from '@nestjs/common'
 import { PrismaService } from '../prisma.service'
 
+@Injectable()
 export class PrismaMetricsReadRepository implements MetricsReadRepository {
 	constructor(private prisma: PrismaService) {}
 

@@ -9,7 +9,7 @@ const paramsSchema = z.object({
 })
 
 @Controller('/workspaces/:id/members')
-@WorkspaceRoles('ENGINEERING_MANAGER', 'TECH_LEAD', 'DEVELOPER')
+@WorkspaceRoles('ENGINEERING_MANAGER', 'TECH_LEAD')
 export class ListWorkspaceMembersController {
 	constructor(private members: WorkspaceMembersService) {}
 

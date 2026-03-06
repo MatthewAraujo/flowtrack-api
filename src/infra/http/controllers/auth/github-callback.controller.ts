@@ -15,7 +15,7 @@ export class GithubCallbackController {
 
 	@Get('/callback')
 	@Redirect()
-	async callback(@Query('code') code?: string, @Query('state') _state?: string) {
+	async callback(@Query('code') code?: string, @Query('state') state?: string) {
 		if (!code) {
 			return { error: 'Missing OAuth code' }
 		}
@@ -29,8 +29,13 @@ export class GithubCallbackController {
 
 		this.logger.log(`OAuth completed for user ${userId}; full sync scheduled asynchronously.`)
 		const uiCallback = this.envService.get('GITHUB_OAUTH_UI_REDIRECT_URL')
+		const url = new URL(uiCallback)
+		url.searchParams.set('token', accessToken)
+		if (state && state.startsWith('/') && !state.startsWith('//')) {
+			url.searchParams.set('next', state)
+		}
 		return {
-			url: `${uiCallback}?token=${accessToken}`,
+			url: url.toString(),
 		}
 	}
 }

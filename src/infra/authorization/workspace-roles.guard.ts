@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core'
 
 import { WorkspaceMembersService } from '@/domain/flowtrack/application/services/workspace-members.service'
 import { WORKSPACE_ROLES_KEY, type WorkspaceRole } from './workspace-roles'
+import { isRole } from './roles'
 
 @Injectable()
 export class WorkspaceRolesGuard implements CanActivate {
@@ -31,7 +32,7 @@ export class WorkspaceRolesGuard implements CanActivate {
 
 		const role = await this.workspaceMembers.getRole(user.sub, workspaceId)
 
-		if (!role) {
+		if (!role || !isRole(role)) {
 			return false
 		}
 

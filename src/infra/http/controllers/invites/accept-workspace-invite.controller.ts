@@ -8,7 +8,8 @@ import { WorkspaceInvitesService } from '@/domain/flowtrack/application/services
 import { WorkspaceMembersService } from '@/domain/flowtrack/application/services/workspace-members.service'
 import { PrismaService } from '@/infra/database/prisma/prisma.service'
 import { RateLimitService } from '@/infra/ratelimit/rate-limit.service'
-import { Controller, NotFoundException, Param, Post, TooManyRequestsException } from '@nestjs/common'
+import { TooManyRequestsException } from '@/infra/http/exceptions/too-many-requests.exception'
+import { Controller, NotFoundException, Param, Post } from '@nestjs/common'
 import { z } from 'zod'
 
 const paramsSchema = z.object({

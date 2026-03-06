@@ -30,4 +30,12 @@ describe('GithubCallbackController', () => {
 			url: 'https://ui.local/callback?token=jwt-token',
 		})
 	})
+
+	it('forwards a safe next path from state', async () => {
+		const response = await sut.callback('code', '/invites/accept?token=abc')
+
+		expect(response).toEqual({
+			url: 'https://ui.local/callback?token=jwt-token&next=%2Finvites%2Faccept%3Ftoken%3Dabc',
+		})
+	})
 })

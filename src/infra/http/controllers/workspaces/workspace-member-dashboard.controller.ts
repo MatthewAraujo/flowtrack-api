@@ -1,6 +1,7 @@
 import { DashboardSummary } from '@/domain/flowtrack/enterprise/entities/value-objects/dashboard-summary'
 import { RepositoryAccessService } from '@/domain/flowtrack/application/services/repository-access.service'
 import { WorkspaceMembersService } from '@/domain/flowtrack/application/services/workspace-members.service'
+import { WorkspaceRepositoriesService } from '@/domain/flowtrack/application/services/workspace-repositories.service'
 import { GetMetricsForReposUseCase } from '@/domain/flowtrack/application/use-cases/metrics/get-metrics-for-repos'
 import { WorkspaceRoles } from '@/infra/authorization/workspace-roles'
 import { CacheMetricsService } from '@/infra/cache/cache-metrics.service'
@@ -29,6 +30,7 @@ export class WorkspaceMemberDashboardController {
 	constructor(
 		private members: WorkspaceMembersService,
 		private repositoryAccess: RepositoryAccessService,
+		private workspaceRepositories: WorkspaceRepositoriesService,
 		private metrics: GetMetricsForReposUseCase,
 		private cacheRepository: CacheRepository,
 		private cacheMetrics: CacheMetricsService,
@@ -40,7 +42,9 @@ export class WorkspaceMemberDashboardController {
 		@Query(new ZodValidationPipe(querySchema))
 		query: { window: '7d' | '30d' | '90d'; refresh?: string },
 	) {
-		const cacheKey = `workspace:member-dashboard:${params.id}:${params.userId}:${query.window}`
+		const selectedRepositoryIds = await this.workspaceRepositories.listSelectedRepositoryIds(params.id)
+		const selectionKey = selectedRepositoryIds.slice().sort().join(',')
+		const cacheKey = `workspace:member-dashboard:${params.id}:${params.userId}:${query.window}:${selectionKey}`
 		if (query.refresh !== 'true') {
 			const cached = await getCachedJson<ReturnType<typeof DashboardSummaryPresenter.toHTTP>>(
 				this.cacheRepository,
@@ -57,7 +61,12 @@ export class WorkspaceMemberDashboardController {
 			throw new NotFoundException('Workspace member not found')
 		}
 
-		const repositoryIds = await this.repositoryAccess.listRepositoryIds(params.userId)
+		let repositoryIds: string[] = []
+		if (selectedRepositoryIds.length) {
+			const selectedSet = new Set(selectedRepositoryIds)
+			const memberRepositoryIds = await this.repositoryAccess.listRepositoryIds(params.userId)
+			repositoryIds = memberRepositoryIds.filter((repositoryId) => selectedSet.has(repositoryId))
+		}
 		const metrics = await this.metrics.execute(repositoryIds, query.window, {
 			refresh: query.refresh === 'true',
 		})

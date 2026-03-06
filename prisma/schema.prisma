@@ -29,6 +29,8 @@ model User {
   workspaceMemberships WorkspaceMember[]
   workspaceInvitesCreated WorkspaceInvite[] @relation("WorkspaceInviteCreator")
   workspaceInvitesUsed WorkspaceInvite[] @relation("WorkspaceInviteUsedBy")
+  workspaceAuditLogsActed WorkspaceAuditLog[] @relation("WorkspaceAuditActor")
+  workspaceAuditLogsTarget WorkspaceAuditLog[] @relation("WorkspaceAuditTarget")
 }
 
 model Role {
@@ -59,6 +61,7 @@ model Workspace {
   creator User @relation("WorkspaceCreator", fields: [createdBy], references: [id])
   members WorkspaceMember[]
   invites WorkspaceInvite[]
+  auditLogs WorkspaceAuditLog[]
 
   @@index([createdBy])
 }
@@ -95,6 +98,23 @@ model WorkspaceInvite {
 
   @@index([workspaceId])
   @@index([tokenHash, expiresAt])
+}
+
+model WorkspaceAuditLog {
+  id          String   @id
+  workspaceId String
+  actorUserId String
+  action      String
+  targetUserId String?
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id])
+  actor     User      @relation("WorkspaceAuditActor", fields: [actorUserId], references: [id])
+  targetUser User?    @relation("WorkspaceAuditTarget", fields: [targetUserId], references: [id])
+
+  @@index([workspaceId, createdAt])
+  @@index([actorUserId])
 }
 
 model GitHubAccount {

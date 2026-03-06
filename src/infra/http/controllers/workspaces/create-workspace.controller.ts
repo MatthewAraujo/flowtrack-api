@@ -2,6 +2,7 @@ import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { Roles } from '@/infra/authorization/roles'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { WorkspaceMembersService } from '@/domain/flowtrack/application/services/workspace-members.service'
+import { WorkspaceAuditLogsService } from '@/domain/flowtrack/application/services/workspace-audit-logs.service'
 import { WorkspacesService } from '@/domain/flowtrack/application/services/workspaces.service'
 import { Body, Controller, Post } from '@nestjs/common'
 import { z } from 'zod'
@@ -16,6 +17,7 @@ export class CreateWorkspaceController {
 	constructor(
 		private workspaces: WorkspacesService,
 		private members: WorkspaceMembersService,
+		private auditLogs: WorkspaceAuditLogsService,
 	) {}
 
 	@Post()
@@ -34,6 +36,17 @@ export class CreateWorkspaceController {
 			role: 'ENGINEERING_MANAGER',
 			status: 'ACTIVE',
 			joinedAt: new Date(),
+		})
+
+		await this.auditLogs.log({
+			workspaceId: workspace.id,
+			actorUserId: user.sub,
+			action: 'MEMBER_ADDED',
+			targetUserId: user.sub,
+			metadata: {
+				source: 'workspace_create',
+				role: 'ENGINEERING_MANAGER',
+			},
 		})
 
 		return {

@@ -4,7 +4,8 @@ import { CurrentUser } from '@/infra/auth/current-user-decorator'
 import { WorkspaceRoles } from '@/infra/authorization/workspace-roles'
 import { ZodValidationPipe } from '@/infra/http/pipes/zod-validation-pipe'
 import { WorkspaceInvitesService } from '@/domain/flowtrack/application/services/workspace-invites.service'
-import { Body, Controller, Param, Post } from '@nestjs/common'
+import { RateLimitService } from '@/infra/ratelimit/rate-limit.service'
+import { Body, Controller, Param, Post, TooManyRequestsException } from '@nestjs/common'
 import { z } from 'zod'
 
 const paramsSchema = z.object({
@@ -17,6 +18,8 @@ const bodySchema = z.object({
 })
 
 const INVITE_EXPIRY_DAYS = 7
+const INVITE_RATE_LIMIT = 10
+const INVITE_RATE_WINDOW_SECONDS = 60 * 60
 
 function hashInviteToken(token: string) {
 	return createHash('sha256').update(token).digest('hex')
@@ -25,7 +28,10 @@ function hashInviteToken(token: string) {
 @Controller('/workspaces/:id/invites')
 @WorkspaceRoles('ENGINEERING_MANAGER', 'TECH_LEAD')
 export class CreateWorkspaceInviteController {
-	constructor(private invites: WorkspaceInvitesService) {}
+	constructor(
+		private invites: WorkspaceInvitesService,
+		private rateLimit: RateLimitService,
+	) {}
 
 	@Post()
 	async handle(
@@ -34,13 +40,25 @@ export class CreateWorkspaceInviteController {
 		@Body(new ZodValidationPipe(bodySchema))
 		body: { email: string; role?: 'ENGINEERING_MANAGER' | 'TECH_LEAD' | 'DEVELOPER' },
 	) {
+		const normalizedEmail = body.email.trim().toLowerCase()
+
+		const limiter = await this.rateLimit.consume(
+			`ratelimit:workspace_invite_create:${user.sub}`,
+			INVITE_RATE_LIMIT,
+			INVITE_RATE_WINDOW_SECONDS,
+		)
+
+		if (!limiter.allowed) {
+			throw new TooManyRequestsException('Invite rate limit exceeded')
+		}
+
 		const token = randomBytes(32).toString('base64url')
 		const tokenHash = hashInviteToken(token)
 		const expiresAt = new Date(Date.now() + INVITE_EXPIRY_DAYS * 24 * 60 * 60 * 1000)
 
 		const invite = await this.invites.createInvite({
 			workspaceId: params.id,
-			email: body.email,
+			email: normalizedEmail,
 			role: body.role,
 			tokenHash,
 			createdBy: user.sub,

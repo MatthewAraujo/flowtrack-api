@@ -26,7 +26,7 @@ export class ListWorkspacesController {
 		}
 
 		const workspaces = await this.workspaces.listForUser(user.sub)
-		const pendingInvites = await this.invites.listPendingInvitesForEmail(account.email)
+		const pendingInvites = await this.invites.listPendingInvitesForEmail(account.email.toLowerCase())
 
 		return {
 			items: workspaces.map((workspace) => ({

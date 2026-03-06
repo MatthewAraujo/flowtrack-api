@@ -21,6 +21,7 @@ import { CryptographyModule } from '../cryptography/cryptography.module'
 import { DatabaseModule } from '../database/database.module'
 import { EnvModule } from '../env/env.module'
 import { GitHubModule } from '../github/github.module'
+import { RateLimitModule } from '../ratelimit/rate-limit.module'
 import { StorageModule } from '../storage/storage.module'
 import { WorkspacesModule } from '../workspaces/workspaces.module'
 import { AuthenticateController } from './controllers/auth/authenticate.controller'
@@ -55,6 +56,7 @@ import { UseCaseResultInterceptor } from './interceptors/use-case-result.interce
 		EnvModule,
 		CacheModule,
 		GitHubModule,
+		RateLimitModule,
 		WorkspacesModule,
 	],
 	controllers: [

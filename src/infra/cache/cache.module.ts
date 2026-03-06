@@ -12,6 +12,6 @@ import { RedisService } from './redis/redis.service'
 			useClass: RedisCacheRepository,
 		},
 	],
-	exports: [CacheRepository],
+	exports: [CacheRepository, RedisService],
 })
 export class CacheModule {}
